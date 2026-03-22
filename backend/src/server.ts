@@ -1,13 +1,9 @@
-﻿import "dotenv/config";
+import "dotenv/config";
 import { createApp } from "./app";
-import { configureCloudinary, connectDb } from "./config";
-import { ensureDefaultPlans, ensureSeedData } from "./services/seed.service";
+import { initializeBackend } from "./bootstrap";
 
 async function bootstrap() {
-  configureCloudinary();
-  await connectDb();
-  await ensureDefaultPlans();
-  await ensureSeedData();
+  await initializeBackend();
 
   const port = Number(process.env.PORT ?? 4000);
   const app = createApp();
