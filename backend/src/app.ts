@@ -1,4 +1,4 @@
-﻿import cors from "cors";
+import cors from "cors";
 import express from "express";
 import { getEnv, isAllowedOrigin } from "./config";
 import { ApiError } from "./lib/http";
@@ -8,6 +8,7 @@ import { createApiRouter } from "./routes";
 export function createApp() {
   const app = express();
   const env = getEnv();
+  const webhookBodyParser = express.raw({ type: "application/json", limit: "1mb" });
 
   app.disable("x-powered-by");
   app.set("trust proxy", 1);
@@ -32,7 +33,8 @@ export function createApp() {
       credentials: true
     })
   );
-  app.use("/api/billing/webhook", express.raw({ type: "application/json", limit: "1mb" }));
+  app.use("/billing/webhook", webhookBodyParser);
+  app.use("/api/billing/webhook", webhookBodyParser);
   app.use(express.json({ limit: "200kb" }));
   app.use(express.urlencoded({ extended: true, limit: "200kb" }));
 
@@ -44,8 +46,10 @@ export function createApp() {
     res.status(204).end();
   });
 
+  app.use("/auth", authRateLimiter);
   app.use("/api/auth", authRateLimiter);
   app.use("/api", apiRateLimiter, createApiRouter());
+  app.use("/", apiRateLimiter, createApiRouter());
   app.use(notFoundHandler);
   app.use(errorHandler);
 

@@ -18,15 +18,6 @@ function applyCors(req: any, res: any) {
   }
 }
 
-function normalizeApiPath(req: any) {
-  const currentUrl = typeof req?.url === "string" ? req.url : "/";
-  if (!currentUrl.startsWith("/api")) {
-    const normalized = currentUrl === "/" ? "/api" : `/api${currentUrl.startsWith("/") ? currentUrl : `/${currentUrl}`}`;
-    req.url = normalized;
-    req.originalUrl = normalized;
-  }
-}
-
 function isHealthRequest(req: { method?: string; url?: string }) {
   return req.method === "GET" && (req.url === "/api/health" || req.url === "/health" || req.url === "/api");
 }
@@ -38,8 +29,6 @@ export default async function handler(req: any, res: any) {
     res.status(204).end();
     return;
   }
-
-  normalizeApiPath(req);
 
   if (isHealthRequest(req)) {
     res.status(200).json({ success: true, data: { status: "ok", runtime: "vercel" } });
