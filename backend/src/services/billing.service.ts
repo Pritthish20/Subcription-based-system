@@ -28,6 +28,22 @@ type RazorpayEventPayload = {
   };
 };
 
+type ProviderErrorLike = {
+  error?: {
+    code?: string;
+    description?: string;
+    reason?: string;
+    field?: string;
+    source?: string;
+    step?: string;
+    metadata?: Record<string, unknown>;
+  };
+  statusCode?: number;
+  code?: string;
+  description?: string;
+  message?: string;
+};
+
 function unixToDate(value?: number | string | null) {
   if (!value) return undefined;
   const numeric = Number(value);
@@ -66,6 +82,26 @@ function verifyRazorpaySignature(payload: string, signature: string, secret: str
   return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
 }
 
+function toProviderApiError(error: unknown, fallbackMessage: string, fallbackCode: string) {
+  if (error instanceof ApiError) return error;
+
+  const providerError = error as ProviderErrorLike | undefined;
+  const details = providerError?.error;
+  const message = details?.description || providerError?.description || providerError?.message || fallbackMessage;
+
+  return new ApiError(providerError?.statusCode ?? 502, message, {
+    code: details?.code || providerError?.code || fallbackCode,
+    context: {
+      reason: details?.reason,
+      field: details?.field,
+      source: details?.source,
+      step: details?.step,
+      metadata: details?.metadata
+    },
+    cause: error
+  });
+}
+
 async function getUserAndCharity(userId: string, charityId?: string) {
   const user = await User.findById(userId);
   if (!user) throw new ApiError(404, "User not found", { code: "USER_NOT_FOUND" });
@@ -88,20 +124,25 @@ async function ensureRazorpayPlan(plan: any, razorpay: Razorpay) {
     return seededPlanId;
   }
 
-  const created = await razorpay.plans.create({
-    period: plan.interval,
-    interval: 1,
-    item: {
-      name: plan.name,
-      amount: Math.round(plan.amountInr * 100),
-      currency: "INR",
-      description: `${plan.name} membership`
-    },
-    notes: {
-      localPlanId: plan._id.toString(),
-      interval: plan.interval
-    }
-  });
+  let created: any;
+  try {
+    created = await razorpay.plans.create({
+      period: plan.interval,
+      interval: 1,
+      item: {
+        name: plan.name,
+        amount: Math.round(plan.amountInr * 100),
+        currency: "INR",
+        description: `${plan.name} membership`
+      },
+      notes: {
+        localPlanId: plan._id.toString(),
+        interval: plan.interval
+      }
+    });
+  } catch (error) {
+    throw toProviderApiError(error, "Failed to create Razorpay plan", "RAZORPAY_PLAN_CREATE_FAILED");
+  }
 
   plan.providerPlanId = created.id;
   plan.paymentProvider = "razorpay";
@@ -353,17 +394,22 @@ export async function handleCheckout(userId: string, payload: CheckoutInput) {
     }
 
     const providerPlanId = await ensureRazorpayPlan(plan, razorpay);
-    const remoteSubscription = await razorpay.subscriptions.create({
-      plan_id: providerPlanId,
-      total_count: plan.interval === "yearly" ? 10 : 120,
-      quantity: 1,
-      customer_notify: 1,
-      notes: {
-        checkoutKind: "subscription",
-        userId,
-        planId: plan._id.toString()
-      }
-    }) as any;
+    let remoteSubscription: any;
+    try {
+      remoteSubscription = await razorpay.subscriptions.create({
+        plan_id: providerPlanId,
+        total_count: plan.interval === "yearly" ? 10 : 120,
+        quantity: 1,
+        customer_notify: 1,
+        notes: {
+          checkoutKind: "subscription",
+          userId,
+          planId: plan._id.toString()
+        }
+      }) as any;
+    } catch (error) {
+      throw toProviderApiError(error, "Failed to create Razorpay subscription", "RAZORPAY_SUBSCRIPTION_CREATE_FAILED");
+    }
 
     await Subscription.findOneAndUpdate(
       { userId },
@@ -458,18 +504,23 @@ export async function handleOneTimeDonation(userId: string, payload: OneTimeDona
       };
     }
 
-    const order = await razorpay.orders.create({
-      amount: Math.round(payload.amount * 100),
-      currency: "INR",
-      receipt: `donation_${Date.now()}`,
-      notes: {
-        checkoutKind: "donation",
-        userId,
-        charityId: payload.charityId,
-        amountInr: String(payload.amount),
-        message: payload.message ?? ""
-      }
-    }) as any;
+    let order: any;
+    try {
+      order = await razorpay.orders.create({
+        amount: Math.round(payload.amount * 100),
+        currency: "INR",
+        receipt: `donation_${Date.now()}`,
+        notes: {
+          checkoutKind: "donation",
+          userId,
+          charityId: payload.charityId,
+          amountInr: String(payload.amount),
+          message: payload.message ?? ""
+        }
+      }) as any;
+    } catch (error) {
+      throw toProviderApiError(error, "Failed to create Razorpay donation order", "RAZORPAY_ORDER_CREATE_FAILED");
+    }
 
     return {
       mode: "razorpay" as const,
@@ -659,3 +710,5 @@ export async function handleWebhook(body: unknown, signatureHeader?: string | st
     }
   });
 }
+
+
