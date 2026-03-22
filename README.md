@@ -53,7 +53,7 @@ Frontend:
 - deploy the `frontend/` directory separately and set `VITE_API_BASE_URL` to the deployed backend API origin
 
 Backend:
-- `backend/vercel.json` configures the backend Vercel serverless functions used by `backend/api/index.ts` and `backend/api/[...route].ts`
+- `backend/vercel.json` routes all backend traffic through the single Vercel serverless entry `backend/api/index.ts`
 - `backend/render.yaml` is included for Render free-tier deployment of the Express server
 - `backend/Dockerfile` is included for hosts that prefer container deployment
 - if deploying on Vercel, deploy the `backend/` directory as a separate Vercel project and set the same backend env vars there`r`n- runtime bootstrap on Vercel now only configures providers and connects Mongo; seeding is a separate one-time script
@@ -90,6 +90,7 @@ Current automated coverage includes:
 - Notification logs now persist delivery metadata like recipient, provider, subject, send status, and failure reason.
 - Email templates use a branded HTML layout with CTA blocks and richer operational metadata for draw, subscription, password, and winner events.
 - Admin analytics surface subscription counts, donation splits, payout totals, notification health, and the latest published draw summary.
+
 
 
 
