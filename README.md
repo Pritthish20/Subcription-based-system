@@ -57,6 +57,7 @@ Backend:
 - `backend/render.yaml` is included for Render free-tier deployment of the Express server
 - `backend/Dockerfile` is included for hosts that prefer container deployment
 - if deploying on Vercel, deploy the `backend/` directory as a separate Vercel project and set the same backend env vars there
+- the lightweight backend health probe is `GET /api/health`; it returns before Mongo bootstrap so Vercel smoke checks can pass even during cold starts
 - point backend `APP_URL` at the deployed frontend host
 - add preview domains or alternate frontend domains to `ADDITIONAL_ALLOWED_ORIGINS`
 
@@ -89,6 +90,8 @@ Current automated coverage includes:
 - Notification logs now persist delivery metadata like recipient, provider, subject, send status, and failure reason.
 - Email templates use a branded HTML layout with CTA blocks and richer operational metadata for draw, subscription, password, and winner events.
 - Admin analytics surface subscription counts, donation splits, payout totals, notification health, and the latest published draw summary.
+
+
 
 
 
