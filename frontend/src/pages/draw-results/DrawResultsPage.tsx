@@ -20,7 +20,7 @@ export function DrawResultsPage() {
     cacheKey: "draws:results",
     path: "/draws/results",
     fallback: [],
-    auth: false
+    useAuth: false
   });
 
   if (isLoading && !results.length) return <LoadingState label="Loading published draws" />;
@@ -66,3 +66,4 @@ export function DrawResultsPage() {
     </main>
   );
 }
+

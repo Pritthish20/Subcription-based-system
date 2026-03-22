@@ -18,7 +18,7 @@ export function CharityDetailPage({ charities }: { charities: Charity[] }) {
     fallback,
     enabled: Boolean(slug),
     staleMs: 45_000,
-    auth: false
+    useAuth: false
   });
 
   if (isLoading && !charity) return <LoadingState label="Loading charity" />;
@@ -77,3 +77,4 @@ export function CharityDetailPage({ charities }: { charities: Charity[] }) {
     </main>
   );
 }
+

@@ -16,7 +16,7 @@ export function useCachedRequest<T>({
   enabled = true,
   staleMs = 60_000,
   throttleMs = 800,
-  auth = false
+  useAuth = false
 }: {
   cacheKey: string;
   path: string;
@@ -24,7 +24,7 @@ export function useCachedRequest<T>({
   enabled?: boolean;
   staleMs?: number;
   throttleMs?: number;
-  auth?: boolean;
+  useAuth?: boolean;
 }) {
   const [data, setData] = useState<T>(fallback);
   const [isLoading, setIsLoading] = useState(enabled);
@@ -48,7 +48,7 @@ export function useCachedRequest<T>({
     }
 
     void refresh(cached ? false : true);
-  }, [cacheKey, path, enabled, staleMs, auth]);
+  }, [cacheKey, path, enabled, staleMs, useAuth]);
 
   async function refresh(force = false) {
     if (!enabled) return;
@@ -73,7 +73,7 @@ export function useCachedRequest<T>({
 
     setIsLoading(true);
     lastFetchRef.current = now;
-    const promise = request<T>(path, { auth });
+    const promise = request<T>(path, { useAuth });
     inflightCache.set(cacheKey, promise);
 
     try {
@@ -93,3 +93,5 @@ export function useCachedRequest<T>({
 
   return { data, setData, isLoading, error, refresh };
 }
+
+

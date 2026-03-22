@@ -69,13 +69,13 @@ export function AdminPage() {
       notificationStats: { sent: 0, failed: 0, queued: 0, skipped: 0 },
       latestPublishedDraw: null
     },
-    auth: true
+    useAuth: true
   });
-  const { data: users, isLoading: usersLoading, error: usersError, refresh: refreshUsers } = useCachedRequest<AdminUser[]>({ cacheKey: "admin:users", path: "/admin/users", fallback: [], auth: true });
-  const { data: charities, isLoading: charitiesLoading, error: charitiesError, refresh: refreshCharities } = useCachedRequest<Charity[]>({ cacheKey: "admin:charities", path: "/charities", fallback: [], auth: true });
-  const { data: winnerClaims, isLoading: winnerClaimsLoading, error: winnerClaimsError, refresh: refreshWinnerClaims } = useCachedRequest<WinnerClaim[]>({ cacheKey: "admin:winner-claims", path: "/admin/winner-claims", fallback: [], auth: true });
-  const { data: subscriptions, isLoading: subscriptionsLoading, error: subscriptionsError, refresh: refreshSubscriptions } = useCachedRequest<AdminSubscription[]>({ cacheKey: "admin:subscriptions", path: "/admin/subscriptions", fallback: [], auth: true });
-  const { data: scores, isLoading: scoresLoading, error: scoresError, refresh: refreshScores } = useCachedRequest<AdminScore[]>({ cacheKey: "admin:scores", path: "/admin/scores", fallback: [], auth: true });
+  const { data: users, isLoading: usersLoading, error: usersError, refresh: refreshUsers } = useCachedRequest<AdminUser[]>({ cacheKey: "admin:users", path: "/admin/users", fallback: [], useAuth: true });
+  const { data: charities, isLoading: charitiesLoading, error: charitiesError, refresh: refreshCharities } = useCachedRequest<Charity[]>({ cacheKey: "admin:charities", path: "/charities", fallback: [], useAuth: true });
+  const { data: winnerClaims, isLoading: winnerClaimsLoading, error: winnerClaimsError, refresh: refreshWinnerClaims } = useCachedRequest<WinnerClaim[]>({ cacheKey: "admin:winner-claims", path: "/admin/winner-claims", fallback: [], useAuth: true });
+  const { data: subscriptions, isLoading: subscriptionsLoading, error: subscriptionsError, refresh: refreshSubscriptions } = useCachedRequest<AdminSubscription[]>({ cacheKey: "admin:subscriptions", path: "/admin/subscriptions", fallback: [], useAuth: true });
+  const { data: scores, isLoading: scoresLoading, error: scoresError, refresh: refreshScores } = useCachedRequest<AdminScore[]>({ cacheKey: "admin:scores", path: "/admin/scores", fallback: [], useAuth: true });
 
   const simulateForm = useForm<DrawSimulationInput>({ resolver: zodResolver(drawSimulationSchema), defaultValues: { month: new Date().toISOString().slice(0, 7), mode: "random" } });
   const publishForm = useForm<DrawPublishInput>({ resolver: zodResolver(drawPublishSchema), defaultValues: { month: new Date().toISOString().slice(0, 7), mode: "weighted", numbers: undefined } });
@@ -301,6 +301,7 @@ export function AdminPage() {
     </main>
   );
 }
+
 
 
 

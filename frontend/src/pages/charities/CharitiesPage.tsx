@@ -15,7 +15,7 @@ export function CharitiesPage({ initialCharities }: { initialCharities: Charity[
   const deferredSearch = useDeferredValue(debouncedSearch);
   const query = useMemo(() => deferredSearch.trim(), [deferredSearch]);
   const path = query ? `/charities?search=${encodeURIComponent(query)}` : "/charities";
-  const { data: charities, isLoading, error, refresh } = useCachedRequest<Charity[]>({ cacheKey: `charities:${query || "all"}`, path, fallback: initialCharities, staleMs: 45_000, throttleMs: 500, auth: false });
+  const { data: charities, isLoading, error, refresh } = useCachedRequest<Charity[]>({ cacheKey: `charities:${query || "all"}`, path, fallback: initialCharities, staleMs: 45_000, throttleMs: 500, useAuth: false });
 
   return (
     <main className="space-y-6">
@@ -42,4 +42,5 @@ export function CharitiesPage({ initialCharities }: { initialCharities: Charity[
     </main>
   );
 }
+
 

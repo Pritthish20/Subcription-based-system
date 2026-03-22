@@ -20,8 +20,8 @@ const AdminPage = lazy(() => import("./pages/admin").then((module) => ({ default
 export default function App() {
   const [session, setSession] = useState<SessionUser | null>(null);
   const [sessionResolved, setSessionResolved] = useState(false);
-  const { data: charities, isLoading: charitiesLoading, error: charitiesError, refresh: refreshCharities } = useCachedRequest<Charity[]>({ cacheKey: "charities:home", path: "/charities", fallback: demoCharities, auth: false });
-  const { data: plans, isLoading: plansLoading, error: plansError, refresh: refreshPlans } = useCachedRequest<Plan[]>({ cacheKey: "plans", path: "/billing/plans", fallback: demoPlans, auth: false });
+  const { data: charities, isLoading: charitiesLoading, error: charitiesError, refresh: refreshCharities } = useCachedRequest<Charity[]>({ cacheKey: "charities:home", path: "/charities", fallback: demoCharities, useAuth: false });
+  const { data: plans, isLoading: plansLoading, error: plansError, refresh: refreshPlans } = useCachedRequest<Plan[]>({ cacheKey: "plans", path: "/billing/plans", fallback: demoPlans, useAuth: false });
 
   useEffect(() => {
     async function hydrateSession() {
@@ -63,4 +63,5 @@ export default function App() {
     </AppShell>
   );
 }
+
 

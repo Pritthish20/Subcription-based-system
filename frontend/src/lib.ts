@@ -85,7 +85,7 @@ type RequestOptions = {
   method?: string;
   body?: unknown;
   headers?: Record<string, string>;
-  auth?: boolean;
+  useAuth?: boolean;
 };
 
 type RefreshResponse = {
@@ -95,11 +95,10 @@ type RefreshResponse = {
 };
 
 type ApiClientConfig = InternalAxiosRequestConfig & {
-  auth?: boolean;
   _retry?: boolean;
 };
 
-const apiClient = axios.create({
+const authClient = axios.create({
   baseURL: apiBaseUrl
 });
 
@@ -154,19 +153,15 @@ async function refreshAccessToken() {
   return refreshPromise;
 }
 
-apiClient.interceptors.request.use((config) => {
-  const nextConfig = config as ApiClientConfig;
-  const shouldAttachAuth = nextConfig.auth ?? true;
-  const isFormData = typeof FormData !== "undefined" && nextConfig.data instanceof FormData;
-  const method = (nextConfig.method ?? "get").toUpperCase();
-  const hasBody = nextConfig.data !== undefined && nextConfig.data !== null && method !== "GET" && method !== "HEAD";
-  const headers = AxiosHeaders.from(nextConfig.headers ?? {});
+function withPreparedHeaders(config: InternalAxiosRequestConfig, attachAuth: boolean) {
+  const isFormData = typeof FormData !== "undefined" && config.data instanceof FormData;
+  const method = (config.method ?? "get").toUpperCase();
+  const hasBody = config.data !== undefined && config.data !== null && method !== "GET" && method !== "HEAD";
+  const headers = AxiosHeaders.from(config.headers ?? {});
 
-  if (shouldAttachAuth && storage.token) {
+  if (attachAuth && storage.token) {
     headers.set("Authorization", `Bearer ${storage.token}`);
-  }
-
-  if (!shouldAttachAuth) {
+  } else {
     headers.delete("Authorization");
   }
 
@@ -174,11 +169,14 @@ apiClient.interceptors.request.use((config) => {
     headers.set("Content-Type", "application/json");
   }
 
-  nextConfig.headers = headers;
-  return nextConfig;
-});
+  config.headers = headers;
+  return config;
+}
 
-apiClient.interceptors.response.use(
+authClient.interceptors.request.use((config) => withPreparedHeaders(config, true));
+publicClient.interceptors.request.use((config) => withPreparedHeaders(config, false));
+
+authClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ApiResponse<unknown>>) => {
     const original = error.config as ApiClientConfig | undefined;
@@ -192,7 +190,7 @@ apiClient.interceptors.response.use(
 
     original._retry = true;
     await refreshAccessToken();
-    return apiClient.request(original);
+    return authClient.request(original);
   }
 );
 
@@ -204,13 +202,13 @@ export async function restoreSession() {
 
 export async function request<T>(path: string, init?: RequestOptions): Promise<T> {
   try {
-    const response = await apiClient.request<ApiResponse<T>>({
+    const client = init?.useAuth === false ? publicClient : authClient;
+    const response = await client.request<ApiResponse<T>>({
       url: path,
       method: init?.method ?? "GET",
       data: init?.body,
-      headers: init?.headers,
-      auth: init?.auth
-    } as AxiosRequestConfig & { auth?: boolean });
+      headers: init?.headers
+    } as AxiosRequestConfig);
 
     const payload = response.data;
     if (!payload.success) {
