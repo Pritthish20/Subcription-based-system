@@ -1,0 +1,11 @@
+export type UserRole = "subscriber" | "admin";
+export type AccountState = "pending" | "active" | "inactive";
+export type SubscriptionStatus = "incomplete" | "active" | "past_due" | "cancelled" | "lapsed";
+export type PlanInterval = "monthly" | "yearly";
+export type DrawMode = "random" | "weighted";
+export type DrawStatus = "draft" | "published";
+export type WinnerReviewStatus = "pending" | "approved" | "rejected";
+export type PayoutStatus = "pending" | "paid";
+export type PaymentProvider = "razorpay" | "manual";
+export type TransactionSource = PaymentProvider;
+export type DonationType = "subscription" | "independent";

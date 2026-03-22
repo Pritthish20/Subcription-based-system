@@ -1,0 +1,1 @@
+﻿export { CharityDetailPage } from "./CharityDetailPage";

@@ -1,0 +1,10 @@
+﻿node_modules
+dist
+.vercel
+.env
+.env.local
+coverage
+backend/.env
+frontend/.env
+backend/.env.production
+frontend/.env.production
