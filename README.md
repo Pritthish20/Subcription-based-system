@@ -38,12 +38,12 @@ Backend:
   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, and `SMTP_PASS` configure the mailbox transport
 
 ## Seeded Data
-On first backend run the app seeds:
+The seed script populates:
 - 2 starter charities
 - monthly and yearly plans
 - admin account
 
-Default admin credentials:
+Run `npm run seed --workspace backend` after configuring backend envs.`r`n`r`nDefault admin credentials:
 - `admin@digitalheroes.demo`
 - `Admin@123456`
 
@@ -56,7 +56,7 @@ Backend:
 - `backend/vercel.json` configures the backend Vercel serverless functions used by `backend/api/index.ts` and `backend/api/[...route].ts`
 - `backend/render.yaml` is included for Render free-tier deployment of the Express server
 - `backend/Dockerfile` is included for hosts that prefer container deployment
-- if deploying on Vercel, deploy the `backend/` directory as a separate Vercel project and set the same backend env vars there
+- if deploying on Vercel, deploy the `backend/` directory as a separate Vercel project and set the same backend env vars there`r`n- runtime bootstrap on Vercel now only configures providers and connects Mongo; seeding is a separate one-time script
 - the lightweight backend health probe is `GET /api/health`; it returns before Mongo bootstrap so Vercel smoke checks can pass even during cold starts
 - point backend `APP_URL` at the deployed frontend host
 - add preview domains or alternate frontend domains to `ADDITIONAL_ALLOWED_ORIGINS`
@@ -90,6 +90,7 @@ Current automated coverage includes:
 - Notification logs now persist delivery metadata like recipient, provider, subject, send status, and failure reason.
 - Email templates use a branded HTML layout with CTA blocks and richer operational metadata for draw, subscription, password, and winner events.
 - Admin analytics surface subscription counts, donation splits, payout totals, notification health, and the latest published draw summary.
+
 
 
 
