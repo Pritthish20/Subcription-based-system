@@ -1,4 +1,4 @@
-﻿import { ArrowLeft, CalendarRange, HeartHandshake } from "lucide-react";
+import { ArrowLeft, CalendarRange, HeartHandshake } from "lucide-react";
 import { useMemo } from "react";
 import { NavLink, useParams } from "react-router-dom";
 import { Panel } from "../../components/Panel";
@@ -17,7 +17,8 @@ export function CharityDetailPage({ charities }: { charities: Charity[] }) {
     path: `/charities/${slug}`,
     fallback,
     enabled: Boolean(slug),
-    staleMs: 45_000
+    staleMs: 45_000,
+    auth: false
   });
 
   if (isLoading && !charity) return <LoadingState label="Loading charity" />;

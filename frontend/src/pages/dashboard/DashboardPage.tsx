@@ -55,13 +55,13 @@ export function DashboardPage({ charities }: { charities: Charity[] }) {
   const { data: summary, isLoading, error, refresh } = useCachedRequest<DashboardSummary>({
     cacheKey: "dashboard:subscriber",
     path: "/dashboard/subscriber",
-    fallback: { user: null, subscription: null, scores: [], claims: [], drawsEntered: 0, winningsTotal: 0 }
+    fallback: { user: null, subscription: null, scores: [], claims: [], drawsEntered: 0, winningsTotal: 0 }, auth: true
   });
 
   const { data: plans, isLoading: plansLoading, error: plansError, refresh: refreshPlans } = useCachedRequest<Plan[]>({
     cacheKey: "billing:plans",
     path: "/billing/plans",
-    fallback: demoPlans
+    fallback: demoPlans, auth: false
   });
 
   const scoreForm = useForm<ScoreInput>({ resolver: zodResolver(scoreSchema), defaultValues: { score: 32, playedAt: new Date().toISOString(), notes: "" } });
@@ -309,3 +309,4 @@ export function DashboardPage({ charities }: { charities: Charity[] }) {
     </main>
   );
 }
+

@@ -1,3 +1,4 @@
+import axios, { AxiosError, AxiosHeaders, type AxiosRequestConfig, type InternalAxiosRequestConfig } from "axios";
 import type { ApiResponse } from "@shared/index";
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api").replace(/\/$/, "");
@@ -80,6 +81,45 @@ export function clearSessionStorage() {
   storage.role = "subscriber";
 }
 
+type RequestOptions = {
+  method?: string;
+  body?: unknown;
+  headers?: Record<string, string>;
+  auth?: boolean;
+};
+
+type RefreshResponse = {
+  accessToken: string;
+  refreshToken: string;
+  user: { role?: string };
+};
+
+type ApiClientConfig = InternalAxiosRequestConfig & {
+  auth?: boolean;
+  _retry?: boolean;
+};
+
+const apiClient = axios.create({
+  baseURL: apiBaseUrl
+});
+
+const publicClient = axios.create({
+  baseURL: apiBaseUrl
+});
+
+function extractApiError(error: unknown) {
+  if (axios.isAxiosError(error)) {
+    const payload = error.response?.data as ApiResponse<unknown> | undefined;
+    if (payload && typeof payload === "object" && "success" in payload && payload.success === false) {
+      return payload.error.issues?.join(", ") || payload.error.message;
+    }
+
+    return error.message || "Request failed";
+  }
+
+  return error instanceof Error ? error.message : "Request failed";
+}
+
 async function refreshAccessToken() {
   if (!storage.refreshToken) {
     clearSessionStorage();
@@ -88,22 +128,24 @@ async function refreshAccessToken() {
 
   if (refreshPromise) return refreshPromise;
 
-  refreshPromise = fetch(`${apiBaseUrl}/auth/refresh`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refreshToken: storage.refreshToken })
-  })
-    .then(async (response) => {
-      const payload = (await response.json()) as ApiResponse<{ accessToken: string; refreshToken: string; user: { role?: string } }>;
-      if (!response.ok || !payload.success) {
+  refreshPromise = publicClient
+    .post<ApiResponse<RefreshResponse>>("/auth/refresh", { refreshToken: storage.refreshToken }, {
+      headers: { "Content-Type": "application/json" }
+    })
+    .then(({ data }) => {
+      if (!data.success) {
         clearSessionStorage();
-        throw new Error(payload.success ? "Session refresh failed" : payload.error.message);
+        throw new Error(data.error.message);
       }
 
-      storage.token = payload.data.accessToken;
-      storage.refreshToken = payload.data.refreshToken;
-      storage.role = payload.data.user.role ?? "subscriber";
-      return payload.data.accessToken;
+      storage.token = data.data.accessToken;
+      storage.refreshToken = data.data.refreshToken;
+      storage.role = data.data.user.role ?? "subscriber";
+      return data.data.accessToken;
+    })
+    .catch((error) => {
+      clearSessionStorage();
+      throw new Error(extractApiError(error));
     })
     .finally(() => {
       refreshPromise = null;
@@ -112,35 +154,73 @@ async function refreshAccessToken() {
   return refreshPromise;
 }
 
+apiClient.interceptors.request.use((config) => {
+  const nextConfig = config as ApiClientConfig;
+  const shouldAttachAuth = nextConfig.auth ?? true;
+  const isFormData = typeof FormData !== "undefined" && nextConfig.data instanceof FormData;
+  const method = (nextConfig.method ?? "get").toUpperCase();
+  const hasBody = nextConfig.data !== undefined && nextConfig.data !== null && method !== "GET" && method !== "HEAD";
+  const headers = AxiosHeaders.from(nextConfig.headers ?? {});
+
+  if (shouldAttachAuth && storage.token) {
+    headers.set("Authorization", `Bearer ${storage.token}`);
+  }
+
+  if (!shouldAttachAuth) {
+    headers.delete("Authorization");
+  }
+
+  if (hasBody && !isFormData && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  nextConfig.headers = headers;
+  return nextConfig;
+});
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError<ApiResponse<unknown>>) => {
+    const original = error.config as ApiClientConfig | undefined;
+    if (!original || original._retry || error.response?.status !== 401 || !storage.refreshToken) {
+      throw error;
+    }
+
+    if (typeof original.url === "string" && original.url.startsWith("/auth/")) {
+      throw error;
+    }
+
+    original._retry = true;
+    await refreshAccessToken();
+    return apiClient.request(original);
+  }
+);
+
 export async function restoreSession() {
   if (!storage.refreshToken) return null;
   const nextToken = await refreshAccessToken();
   return nextToken;
 }
 
-export async function request<T>(path: string, init?: RequestInit, allowRetry = true): Promise<T> {
-  const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    ...init,
-    headers: {
-      ...(isFormData ? {} : { "Content-Type": "application/json" }),
-      ...(storage.token ? { Authorization: `Bearer ${storage.token}` } : {}),
-      ...(init?.headers ?? {})
+export async function request<T>(path: string, init?: RequestOptions): Promise<T> {
+  try {
+    const response = await apiClient.request<ApiResponse<T>>({
+      url: path,
+      method: init?.method ?? "GET",
+      data: init?.body,
+      headers: init?.headers,
+      auth: init?.auth
+    } as AxiosRequestConfig & { auth?: boolean });
+
+    const payload = response.data;
+    if (!payload.success) {
+      throw new Error(payload.error.issues?.join(", ") || payload.error.message);
     }
-  });
 
-  const payload = (await response.json()) as ApiResponse<T>;
-
-  if (!payload.success && response.status === 401 && allowRetry && storage.refreshToken && !path.startsWith("/auth/")) {
-    await refreshAccessToken();
-    return request<T>(path, init, false);
+    return payload.data;
+  } catch (error) {
+    throw new Error(extractApiError(error));
   }
-
-  if (!payload.success) {
-    throw new Error(payload.error.issues?.join(", ") || payload.error.message);
-  }
-
-  return payload.data;
 }
 
 export async function loadRazorpayCheckout(): Promise<RazorpayConstructor> {
@@ -202,7 +282,7 @@ export async function uploadWinnerProof(file: File) {
     timestamp: number;
     signature: string;
     uploadUrl: string;
-  }>("/uploads/winner-proof-signature", { method: "POST", body: JSON.stringify({}) });
+  }>("/uploads/winner-proof-signature", { method: "POST", body: {} });
 
   const formData = new FormData();
   formData.append("file", file);
@@ -211,17 +291,16 @@ export async function uploadWinnerProof(file: File) {
   formData.append("signature", signature.signature);
   formData.append("folder", signature.folder);
 
-  const response = await fetch(signature.uploadUrl, {
-    method: "POST",
-    body: formData
-  });
+  try {
+    const { data } = await axios.post<{ secure_url?: string; error?: { message?: string } }>(signature.uploadUrl, formData);
+    if (!data.secure_url) {
+      throw new Error(data.error?.message || "Cloudinary upload failed");
+    }
 
-  const payload = (await response.json()) as { secure_url?: string; error?: { message?: string } };
-  if (!response.ok || !payload.secure_url) {
-    throw new Error(payload.error?.message || "Cloudinary upload failed");
+    return data.secure_url;
+  } catch (error) {
+    throw new Error(extractApiError(error));
   }
-
-  return payload.secure_url;
 }
 
 export const demoCharities = [
@@ -255,5 +334,3 @@ export const demoPlans = [
 export function currency(value: number) {
   return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value);
 }
-
-

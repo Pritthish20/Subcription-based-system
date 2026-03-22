@@ -1,4 +1,4 @@
-﻿import { Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useDeferredValue, useMemo, useState } from "react";
 import { CharityCard } from "../../components/CharityCard";
 import { Panel } from "../../components/Panel";
@@ -15,7 +15,7 @@ export function CharitiesPage({ initialCharities }: { initialCharities: Charity[
   const deferredSearch = useDeferredValue(debouncedSearch);
   const query = useMemo(() => deferredSearch.trim(), [deferredSearch]);
   const path = query ? `/charities?search=${encodeURIComponent(query)}` : "/charities";
-  const { data: charities, isLoading, error, refresh } = useCachedRequest<Charity[]>({ cacheKey: `charities:${query || "all"}`, path, fallback: initialCharities, staleMs: 45_000, throttleMs: 500 });
+  const { data: charities, isLoading, error, refresh } = useCachedRequest<Charity[]>({ cacheKey: `charities:${query || "all"}`, path, fallback: initialCharities, staleMs: 45_000, throttleMs: 500, auth: false });
 
   return (
     <main className="space-y-6">
@@ -42,3 +42,4 @@ export function CharitiesPage({ initialCharities }: { initialCharities: Charity[
     </main>
   );
 }
+

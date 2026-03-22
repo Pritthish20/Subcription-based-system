@@ -1,4 +1,4 @@
-﻿import { Panel } from "../../components/Panel";
+import { Panel } from "../../components/Panel";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
@@ -19,7 +19,8 @@ export function DrawResultsPage() {
   const { data: results, isLoading, error, refresh } = useCachedRequest<DrawResult[]>({
     cacheKey: "draws:results",
     path: "/draws/results",
-    fallback: []
+    fallback: [],
+    auth: false
   });
 
   if (isLoading && !results.length) return <LoadingState label="Loading published draws" />;

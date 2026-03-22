@@ -1,4 +1,4 @@
-﻿import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/ui/AppShell";
 import { ErrorState } from "./components/ui/ErrorState";
@@ -20,8 +20,8 @@ const AdminPage = lazy(() => import("./pages/admin").then((module) => ({ default
 export default function App() {
   const [session, setSession] = useState<SessionUser | null>(null);
   const [sessionResolved, setSessionResolved] = useState(false);
-  const { data: charities, isLoading: charitiesLoading, error: charitiesError, refresh: refreshCharities } = useCachedRequest<Charity[]>({ cacheKey: "charities:home", path: "/charities", fallback: demoCharities });
-  const { data: plans, isLoading: plansLoading, error: plansError, refresh: refreshPlans } = useCachedRequest<Plan[]>({ cacheKey: "plans", path: "/billing/plans", fallback: demoPlans });
+  const { data: charities, isLoading: charitiesLoading, error: charitiesError, refresh: refreshCharities } = useCachedRequest<Charity[]>({ cacheKey: "charities:home", path: "/charities", fallback: demoCharities, auth: false });
+  const { data: plans, isLoading: plansLoading, error: plansError, refresh: refreshPlans } = useCachedRequest<Plan[]>({ cacheKey: "plans", path: "/billing/plans", fallback: demoPlans, auth: false });
 
   useEffect(() => {
     async function hydrateSession() {
@@ -63,3 +63,4 @@ export default function App() {
     </AppShell>
   );
 }
+
