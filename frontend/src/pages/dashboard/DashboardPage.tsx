@@ -117,9 +117,18 @@ export function DashboardPage({ charities }: { charities: Charity[] }) {
   }, [summary?.user?._id, summary?.user?.fullName, summary?.user?.charityPercentage, summary?.user?.selectedCharityId, profileForm, donationForm]);
 
   useEffect(() => {
-    const firstPlan = plans[0]?._id ?? "";
-    checkoutForm.setValue("planId", checkoutForm.getValues("planId") || firstPlan);
-  }, [plans, checkoutForm]);
+    const currentPlanId = summary?.subscription?.planId && typeof summary.subscription.planId === "object"
+      ? summary.subscription.planId._id ?? ""
+      : "";
+    const existingPlanId = checkoutForm.getValues("planId");
+    if (existingPlanId) return;
+
+    const preferredPlanId = currentPlanId
+      ? plans.find((plan) => plan._id !== currentPlanId)?._id ?? currentPlanId
+      : plans[0]?._id ?? "";
+
+    checkoutForm.setValue("planId", preferredPlanId);
+  }, [plans, summary?.subscription?.planId, checkoutForm]);
 
   async function refreshDashboard(force = true) {
     ["dashboard:subscriber", "billing:plans"].forEach((key) => clearClientCache(key));
@@ -370,4 +379,5 @@ export function DashboardPage({ charities }: { charities: Charity[] }) {
     </main>
   );
 }
+
 

@@ -28,7 +28,7 @@ export type DashboardSummary = {
     status?: string;
     currentPeriodEnd?: string;
     cancellationReason?: string;
-    planId?: { name?: string; interval?: string; amountInr?: number };
+    planId?: { _id?: string; name?: string; interval?: string; amountInr?: number };
   } | null;
   scores: DashboardScore[];
   claims: DashboardClaim[];
