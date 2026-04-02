@@ -83,7 +83,8 @@ export function fail(res: Response, error: ApiError | Error, requestId?: string)
       message: apiError.message,
       issues: apiError.issues,
       code: apiError.code,
-      requestId
+      requestId,
+      context: apiError.context
     }
   });
 }

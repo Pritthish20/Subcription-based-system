@@ -9,7 +9,7 @@ import {
   type VerifyDonationPaymentInput,
   type VerifySubscriptionPaymentInput
 } from "../../../shared/src/index";
-import { getEnv, getRazorpay } from "../config";
+import { getEnv, getRazorpay, isProductionEnv } from "../config";
 import { ApiError, runService } from "../lib/http";
 import { Charity, DonationAllocation, Plan, Subscription, SubscriptionTransaction, User, WebhookEvent } from "../models";
 import { notify } from "./notification.service";
@@ -42,6 +42,19 @@ type ProviderErrorLike = {
   code?: string;
   description?: string;
   message?: string;
+  response?: {
+    data?: {
+      error?: {
+        code?: string;
+        description?: string;
+        reason?: string;
+        field?: string;
+        source?: string;
+        step?: string;
+        metadata?: Record<string, unknown>;
+      };
+    };
+  };
 };
 
 function unixToDate(value?: number | string | null) {
@@ -102,7 +115,7 @@ function toProviderApiError(error: unknown, fallbackMessage: string, fallbackCod
   if (error instanceof ApiError) return error;
 
   const providerError = error as ProviderErrorLike | undefined;
-  const details = providerError?.error;
+  const details = providerError?.error ?? providerError?.response?.data?.error;
   const message = details?.description || providerError?.description || providerError?.message || fallbackMessage;
 
   return new ApiError(providerError?.statusCode ?? 502, message, {
@@ -112,7 +125,9 @@ function toProviderApiError(error: unknown, fallbackMessage: string, fallbackCod
       field: details?.field,
       source: details?.source,
       step: details?.step,
-      metadata: details?.metadata
+      metadata: details?.metadata,
+      providerMessage: providerError?.message,
+      providerDescription: providerError?.description
     },
     cause: error
   });
@@ -128,43 +143,32 @@ async function getUserAndCharity(userId: string, charityId?: string) {
   return { user, charity };
 }
 
-async function ensureRazorpayPlan(plan: any, razorpay: Razorpay) {
+function getSeededPlanId(plan: any, env: ReturnType<typeof getEnv>) {
+  return plan.interval === "monthly" ? env.RAZORPAY_MONTHLY_PLAN_ID : env.RAZORPAY_YEARLY_PLAN_ID;
+}
+
+async function ensureRazorpayPlan(plan: any, _razorpay: Razorpay) {
   const env = getEnv();
   if (plan.providerPlanId) return plan.providerPlanId as string;
 
-  const seededPlanId = plan.interval === "monthly" ? env.RAZORPAY_MONTHLY_PLAN_ID : env.RAZORPAY_YEARLY_PLAN_ID;
-  if (seededPlanId) {
-    plan.providerPlanId = seededPlanId;
-    plan.paymentProvider = "razorpay";
-    if (typeof plan.save === "function") await plan.save();
-    return seededPlanId;
-  }
-
-  let created: any;
-  try {
-    created = await razorpay.plans.create({
-      period: plan.interval,
-      interval: 1,
-      item: {
-        name: plan.name,
-        amount: Math.round(plan.amountInr * 100),
-        currency: "INR",
-        description: `${plan.name} membership`
-      },
-      notes: {
-        localPlanId: plan._id.toString(),
-        interval: plan.interval
+  const seededPlanId = getSeededPlanId(plan, env);
+  if (!seededPlanId) {
+    const seededEnvKey = plan.interval === "monthly" ? "RAZORPAY_MONTHLY_PLAN_ID" : "RAZORPAY_YEARLY_PLAN_ID";
+    throw new ApiError(503, `Subscription checkout requires a pre-created Razorpay plan. Set ${seededEnvKey} for the ${plan.interval} plan before checkout.`, {
+      code: "PAYMENT_PROVIDER_PLAN_UNAVAILABLE",
+      context: {
+        interval: plan.interval,
+        localPlanId: plan._id?.toString?.() ?? undefined,
+        seededEnvKey
       }
     });
-  } catch (error) {
-    throw toProviderApiError(error, "Failed to create Razorpay plan", "RAZORPAY_PLAN_CREATE_FAILED");
   }
 
-  plan.providerPlanId = created.id;
+  plan.providerPlanId = seededPlanId;
   plan.paymentProvider = "razorpay";
   if (typeof plan.save === "function") await plan.save();
 
-  return created.id;
+  return seededPlanId;
 }
 
 async function createIndependentDonationRecord(
@@ -357,7 +361,7 @@ function getWebhookEventId(event: RazorpayEventPayload, eventHeader?: string | s
   return [event.event, summary.paymentId ?? summary.subscriptionId ?? summary.orderId ?? "unknown", event.created_at ?? Date.now()].join(":");
 }
 
-async function fetchVerifiedSubscription(razorpay: Razorpay, payload: VerifySubscriptionPaymentInput) {
+async function fetchVerifiedSubscription(razorpay: Razorpay, payload: Extract<VerifySubscriptionPaymentInput, { checkoutKind: "subscription" }>) {
   const secret = getEnv().RAZORPAY_KEY_SECRET;
   if (!secret) throw new ApiError(503, "Razorpay is not configured", { code: "PAYMENT_PROVIDER_UNAVAILABLE" });
 
@@ -369,13 +373,18 @@ async function fetchVerifiedSubscription(razorpay: Razorpay, payload: VerifySubs
   return razorpay.subscriptions.fetch(payload.subscriptionId) as Promise<any>;
 }
 
-async function fetchVerifiedDonation(razorpay: Razorpay, payload: VerifyDonationPaymentInput) {
+async function fetchVerifiedOrderPayment(
+  razorpay: Razorpay,
+  payload: { orderId: string; paymentId: string; signature: string },
+  invalidMessage: string,
+  invalidCode: string
+) {
   const secret = getEnv().RAZORPAY_KEY_SECRET;
   if (!secret) throw new ApiError(503, "Razorpay is not configured", { code: "PAYMENT_PROVIDER_UNAVAILABLE" });
 
   const expectedPayload = `${payload.orderId}|${payload.paymentId}`;
   if (!verifyRazorpaySignature(expectedPayload, payload.signature, secret)) {
-    throw new ApiError(400, "Donation payment verification failed", { code: "PAYMENT_SIGNATURE_INVALID" });
+    throw new ApiError(400, invalidMessage, { code: invalidCode });
   }
 
   const [order, payment] = await Promise.all([
@@ -399,6 +408,65 @@ export async function handleCheckout(userId: string, payload: CheckoutInput) {
     const razorpay = getRazorpay();
     const env = getEnv();
     const checkoutProvider = requireRazorpayCheckout(env, razorpay);
+    const seededPlanId = getSeededPlanId(plan, env);
+
+    if (!seededPlanId && !plan.providerPlanId && !isProductionEnv(env)) {
+      let order: any;
+      try {
+        order = await checkoutProvider.orders.create({
+          amount: Math.round(plan.amountInr * 100),
+          currency: "INR",
+          receipt: `sub_${Date.now()}`,
+          notes: {
+            checkoutKind: "subscription-order",
+            userId,
+            planId: plan._id.toString(),
+            interval: plan.interval
+          }
+        }) as any;
+      } catch (error) {
+        throw toProviderApiError(error, "Failed to create Razorpay test subscription order", "RAZORPAY_ORDER_CREATE_FAILED");
+      }
+
+      await Subscription.findOneAndUpdate(
+        { userId },
+        {
+          userId,
+          planId: plan._id,
+          status: "incomplete",
+          paymentProvider: "razorpay",
+          providerSubscriptionId: undefined
+        },
+        { upsert: true, new: true }
+      );
+
+      return {
+        mode: "razorpay" as const,
+        paymentProvider: "razorpay" as const,
+        message: "Continue in Razorpay Checkout to activate your test subscription. This uses a one-time test payment in non-production mode.",
+        checkout: {
+          kind: "subscription-order" as const,
+          key: env.RAZORPAY_KEY_ID,
+          orderId: order.id,
+          amount: order.amount,
+          currency: order.currency,
+          name: PLATFORM_NAME,
+          description: `${plan.name} membership (test mode)`,
+          prefill: {
+            name: user.fullName,
+            email: user.email
+          },
+          notes: {
+            userId,
+            planId: plan._id.toString(),
+            interval: plan.interval
+          },
+          theme: { color: CHECKOUT_THEME_COLOR },
+          successUrl: payload.successUrl,
+          cancelUrl: payload.cancelUrl
+        }
+      };
+    }
 
     const providerPlanId = await ensureRazorpayPlan(plan, checkoutProvider);
     let remoteSubscription: any;
@@ -464,28 +532,65 @@ export async function handleSubscriptionVerification(userId: string, payload: Ve
     const plan = await Plan.findById(payload.planId);
     if (!plan) throw new ApiError(404, "Plan not found", { code: "PLAN_NOT_FOUND" });
 
-    const remoteSubscription = await fetchVerifiedSubscription(razorpay, payload);
-    if (remoteSubscription.notes?.userId !== userId || remoteSubscription.notes?.planId !== payload.planId) {
+    if (payload.checkoutKind === "subscription") {
+      const remoteSubscription = await fetchVerifiedSubscription(razorpay, payload);
+      if (remoteSubscription.notes?.userId !== userId || remoteSubscription.notes?.planId !== payload.planId) {
+        throw new ApiError(403, "Subscription does not belong to this user", { code: "PAYMENT_FORBIDDEN" });
+      }
+
+      const subscription = await activateSubscription({
+        userId,
+        plan,
+        providerReference: payload.subscriptionId,
+        source: "razorpay",
+        status: mapRazorpaySubscriptionStatus(remoteSubscription.status),
+        providerCustomerId: remoteSubscription.customer_id ?? undefined,
+        providerSubscriptionId: payload.subscriptionId,
+        currentPeriodStart: unixToDate(remoteSubscription.current_start),
+        currentPeriodEnd: unixToDate(remoteSubscription.current_end)
+      });
+
+      return {
+        verified: true,
+        mode: "razorpay" as const,
+        subscription,
+        message: "Subscription activated successfully.",
+        redirectUrl: `${getEnv().APP_URL}/dashboard`
+      };
+    }
+
+    const { order, payment } = await fetchVerifiedOrderPayment(
+      razorpay,
+      payload,
+      "Subscription payment verification failed",
+      "PAYMENT_SIGNATURE_INVALID"
+    );
+
+    if (payment.order_id !== payload.orderId) {
+      throw new ApiError(400, "Subscription payment verification failed", { code: "PAYMENT_ORDER_MISMATCH" });
+    }
+
+    if (order.notes?.userId !== userId || order.notes?.planId !== payload.planId || order.notes?.checkoutKind !== "subscription-order") {
       throw new ApiError(403, "Subscription does not belong to this user", { code: "PAYMENT_FORBIDDEN" });
+    }
+
+    if (!["captured", "authorized"].includes(payment.status)) {
+      throw new ApiError(400, "Subscription payment has not completed", { code: "PAYMENT_NOT_COMPLETED" });
     }
 
     const subscription = await activateSubscription({
       userId,
       plan,
-      providerReference: payload.subscriptionId,
+      providerReference: payload.paymentId,
       source: "razorpay",
-      status: mapRazorpaySubscriptionStatus(remoteSubscription.status),
-      providerCustomerId: remoteSubscription.customer_id ?? undefined,
-      providerSubscriptionId: payload.subscriptionId,
-      currentPeriodStart: unixToDate(remoteSubscription.current_start),
-      currentPeriodEnd: unixToDate(remoteSubscription.current_end)
+      status: "active"
     });
 
     return {
       verified: true,
       mode: "razorpay" as const,
       subscription,
-      message: "Subscription activated successfully.",
+      message: "Subscription activated successfully in test mode.",
       redirectUrl: `${getEnv().APP_URL}/dashboard`
     };
   });
@@ -552,7 +657,12 @@ export async function handleDonationVerification(userId: string, payload: Verify
     const razorpay = getRazorpay();
     if (!razorpay) throw new ApiError(503, "Razorpay is not configured", { code: "PAYMENT_PROVIDER_UNAVAILABLE" });
 
-    const { order, payment } = await fetchVerifiedDonation(razorpay, payload);
+    const { order, payment } = await fetchVerifiedOrderPayment(
+      razorpay,
+      payload,
+      "Donation payment verification failed",
+      "PAYMENT_SIGNATURE_INVALID"
+    );
     if (payment.order_id !== payload.orderId) {
       throw new ApiError(400, "Donation payment verification failed", { code: "PAYMENT_ORDER_MISMATCH" });
     }
@@ -676,6 +786,19 @@ export async function handleWebhook(body: unknown, signatureHeader?: string | st
                 payment.id
               );
             }
+
+            if (order?.notes?.checkoutKind === "subscription-order" && order.notes?.userId && order.notes?.planId) {
+              const plan = await Plan.findById(order.notes.planId);
+              if (plan) {
+                await activateSubscription({
+                  userId: order.notes.userId,
+                  plan,
+                  providerReference: payment.id,
+                  source: "razorpay",
+                  status: "active"
+                });
+              }
+            }
           }
         }
       }
@@ -707,7 +830,4 @@ export async function handleWebhook(body: unknown, signatureHeader?: string | st
     }
   });
 }
-
-
-
 

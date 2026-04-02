@@ -16,19 +16,22 @@ export function DashboardHero({ summary, subscriptionStatus, selectedCharityName
     : "TBD";
 
   return (
-    <Panel tone="strong" className="space-y-5 p-8">
-      <span className="text-xs font-semibold uppercase tracking-[0.24em] text-white/60">Subscriber dashboard</span>
-      <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl">{summary?.user?.fullName ?? "Your dashboard"}</h1>
-      <div className="grid gap-4 md:grid-cols-4">
+    <Panel tone="strong" className="space-y-6 p-8">
+      <span className="text-xs font-semibold uppercase tracking-[0.28em] text-[#efe2cf]/72">Subscriber dashboard</span>
+      <div className="space-y-3">
+        <h1 className="text-[2.55rem] font-black tracking-[-0.05em] text-white sm:text-[3.25rem]">{summary?.user?.fullName ?? "Your dashboard"}</h1>
+        <p className="max-w-3xl text-[1rem] leading-7 text-[#efe2cf]/82">Monitor your subscription, keep your score history current, and stay ready for the next published draw.</p>
+      </div>
+      <div className="grid auto-rows-min content-start gap-4 md:grid-cols-4">
         <MetricCard value={subscriptionStatus} label="Subscription status" />
         <MetricCard value={summary?.drawsEntered ?? 0} label="Draws entered" />
         <MetricCard value={new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(summary?.winningsTotal ?? 0)} label="Total won" />
         <MetricCard value={`${summary?.user?.charityPercentage ?? 10}%`} label="Charity share" />
       </div>
-      <div className="flex flex-wrap gap-4 text-sm text-white/68">
-        <span>Selected charity: {selectedCharityName}</span>
-        <span>Renewal: {renewalLabel}</span>
-        <span>Upcoming draw: {upcomingDrawLabel}</span>
+      <div className="flex flex-wrap gap-3 text-sm">
+        <span className="detail-chip">Selected charity: {selectedCharityName}</span>
+        <span className="detail-chip">Renewal: {renewalLabel}</span>
+        <span className="detail-chip">Upcoming draw: {upcomingDrawLabel}</span>
       </div>
     </Panel>
   );

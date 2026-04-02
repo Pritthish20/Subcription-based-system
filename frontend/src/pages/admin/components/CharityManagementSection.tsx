@@ -1,4 +1,4 @@
-﻿import type { FormEventHandler } from "react";
+import type { FormEventHandler } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import type { CharityInput } from "@shared/index";
 import { Button, GhostButton, SecondaryButton } from "../../../components/Button";
@@ -29,7 +29,7 @@ export function CharityManagementSection({ charityForm, onSubmit, editingCharity
         </div>
 
         <label className="surface-soft flex items-center gap-3 px-4 py-3 text-sm muted-copy">
-          <input type="checkbox" className="size-4 accent-slate-900" {...charityForm.register("featured")} />
+          <input type="checkbox" className="size-4 accent-brand-night" {...charityForm.register("featured")} />
           Mark as featured charity
         </label>
 
@@ -47,7 +47,7 @@ export function CharityManagementSection({ charityForm, onSubmit, editingCharity
             eventFields.map((field, index) => {
               const startsAtValue = getEventStartsAt(index);
               return (
-                <div key={field.id} className="grid gap-3 rounded-2xl border border-slate-200/70 bg-white p-4 md:grid-cols-2">
+                <div key={field.id} className="grid gap-3 rounded-2xl border border-[#eadbc8]/80 bg-[#fff8ef]/72 p-4 md:grid-cols-2">
                   <label className="grid gap-2 text-sm muted-copy">Title<input {...charityForm.register(`events.${index}.title`)} /></label>
                   <label className="grid gap-2 text-sm muted-copy">Location<input {...charityForm.register(`events.${index}.location`)} /></label>
                   <input type="hidden" {...charityForm.register(`events.${index}.startsAt`)} />

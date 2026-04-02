@@ -29,9 +29,11 @@ Backend:
 - `ADDITIONAL_ALLOWED_ORIGINS` accepts a comma-separated list of preview or secondary frontend hosts
 - provider keys can be left blank or kept as the provided `optional_*` placeholders until you wire real services
 - Razorpay setup:
-  - `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` enable live subscription and donation checkout
-  - `RAZORPAY_WEBHOOK_SECRET` enables webhook verification for payment lifecycle events
-  - `RAZORPAY_MONTHLY_PLAN_ID` and `RAZORPAY_YEARLY_PLAN_ID` are optional if you pre-create plans in Razorpay; otherwise the backend can create plan records on demand
+  - use `rzp_test_*` keys during development and test mode checkout
+  - `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` enable Razorpay test/live checkout
+  - `RAZORPAY_WEBHOOK_SECRET` enables webhook verification for payment lifecycle events and can stay blank unless you are testing webhooks
+  - in `APP_ENV=production`, `RAZORPAY_MONTHLY_PLAN_ID` and `RAZORPAY_YEARLY_PLAN_ID` are required for true recurring subscriptions
+  - in `APP_ENV=development` or `APP_ENV=demo`, if those plan ids are missing the app falls back to a Razorpay test order for subscription checkout so you can test activation without recurring-plan access
 - email delivery:
   - `EMAIL_PROVIDER=mock` is intended for `development` and `demo` only
   - `EMAIL_PROVIDER=smtp` enables real email delivery through Nodemailer/SMTP and is the expected production setting
@@ -94,8 +96,23 @@ Current automated coverage includes:
 - seed credential safety tests
 - environment-mode safety tests for email and proof submission
 
+## Razorpay Test Mode
+- This repo currently supports Razorpay test-mode checkout for development.
+- Donations use Razorpay test orders.
+- Subscriptions use a Razorpay test order fallback in `APP_ENV=development` and `APP_ENV=demo` when recurring plan ids are not configured.
+- For true recurring subscriptions in production, set `RAZORPAY_MONTHLY_PLAN_ID` and `RAZORPAY_YEARLY_PLAN_ID`.
+- Test checkout inputs:
+  - UPI success: `success@razorpay`
+  - UPI failure: `failure@razorpay`
+  - card expiry: any future date
+  - CVV: any random CVV
+  - OTP: any random 4 to 10 digits for success, below 4 digits for failure
+- Razorpay's official test card and UPI references:
+  - https://razorpay.com/docs/payments/payments/test-card-details/?preferred-country=IN
+  - https://razorpay.com/docs/payments/payments/test-upi-details/?preferred-country=IN
+  - https://razorpay.com/docs/payments/subscriptions/test/
 ## Notes
-- Subscription and one-time donation checkout require Razorpay configuration.
+- Subscription and one-time donation checkout require Razorpay configuration. In non-production, subscription checkout can use a Razorpay test order when recurring plan ids are unavailable; production still requires real Razorpay subscription plan ids.
 - Winner proof submission supports signed Cloudinary uploads, and raw proof URLs are limited to `APP_ENV=demo`.
 - Draw publication is admin-triggered and monthly.
 - Frontend and backend can now be deployed separately.
@@ -103,3 +120,7 @@ Current automated coverage includes:
 - Notification logs now persist delivery metadata like recipient, provider, subject, send status, and failure reason.
 - Email templates use a branded HTML layout with CTA blocks and richer operational metadata for draw, subscription, password, and winner events.
 - Admin analytics surface subscription counts, donation splits, payout totals, notification health, and the latest published draw summary.
+
+
+
+

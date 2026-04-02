@@ -129,9 +129,55 @@ export function DashboardPage({ charities }: { charities: Charity[] }) {
   async function launchSubscriptionCheckout(values: CheckoutInput, checkout: RazorpaySubscriptionCheckout) {
     const Razorpay = await loadRazorpayCheckout();
 
+    if (checkout.kind === "subscription") {
+      const instance = new Razorpay({
+        key: checkout.key,
+        subscription_id: checkout.subscriptionId,
+        name: checkout.name,
+        description: checkout.description,
+        prefill: checkout.prefill,
+        notes: checkout.notes,
+        theme: checkout.theme,
+        modal: {
+          ondismiss: () => {
+            if (checkout.cancelUrl) {
+              window.location.assign(checkout.cancelUrl);
+            }
+          }
+        },
+        handler: async (response: { razorpay_payment_id: string; razorpay_subscription_id: string; razorpay_signature: string }) => {
+          try {
+            const result = await request<{ message?: string; redirectUrl?: string }>("/billing/verify/subscription", {
+              method: "POST",
+              body: JSON.stringify({
+                checkoutKind: "subscription",
+                planId: values.planId,
+                paymentId: response.razorpay_payment_id,
+                subscriptionId: response.razorpay_subscription_id,
+                signature: response.razorpay_signature
+              })
+            });
+            toast.success(result.message ?? "Subscription activated");
+            await refreshDashboard();
+            if (result.redirectUrl) {
+              window.location.assign(result.redirectUrl);
+            }
+          } catch (err) {
+            toast.error((err as Error).message);
+            await refreshDashboard();
+          }
+        }
+      });
+
+      instance.open();
+      return;
+    }
+
     const instance = new Razorpay({
       key: checkout.key,
-      subscription_id: checkout.subscriptionId,
+      order_id: checkout.orderId,
+      amount: checkout.amount,
+      currency: checkout.currency,
       name: checkout.name,
       description: checkout.description,
       prefill: checkout.prefill,
@@ -144,14 +190,15 @@ export function DashboardPage({ charities }: { charities: Charity[] }) {
           }
         }
       },
-      handler: async (response: { razorpay_payment_id: string; razorpay_subscription_id: string; razorpay_signature: string }) => {
+      handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
         try {
           const result = await request<{ message?: string; redirectUrl?: string }>("/billing/verify/subscription", {
             method: "POST",
             body: JSON.stringify({
+              checkoutKind: "order",
               planId: values.planId,
+              orderId: response.razorpay_order_id,
               paymentId: response.razorpay_payment_id,
-              subscriptionId: response.razorpay_subscription_id,
               signature: response.razorpay_signature
             })
           });
@@ -323,3 +370,4 @@ export function DashboardPage({ charities }: { charities: Charity[] }) {
     </main>
   );
 }
+

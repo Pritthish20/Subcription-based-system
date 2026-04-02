@@ -1,4 +1,4 @@
-﻿import { Button, GhostButton } from "../../../components/Button";
+import { Button, GhostButton } from "../../../components/Button";
 import { Panel } from "../../../components/Panel";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { ErrorState } from "../../../components/ui/ErrorState";
@@ -19,7 +19,7 @@ export function UserManagementSection({ users, usersError, onRetry, selectedUser
           {users.length ? users.slice(0, 12).map((user) => {
             const charityName = typeof user.selectedCharityId === "string" ? charities.find((entry) => entry._id === user.selectedCharityId)?.name : user.selectedCharityId?.name;
             return (
-              <button key={user._id} type="button" onClick={() => onSelectUser(user)} className={`w-full rounded-2xl border px-4 py-4 text-left transition ${selectedUserId === user._id ? "border-brand-emerald bg-brand-emerald/8" : "border-slate-200/70 bg-white/45 hover:bg-white/72"}`}>
+              <button key={user._id} type="button" onClick={() => onSelectUser(user)} className={`w-full rounded-2xl border px-4 py-4 text-left transition ${selectedUserId === user._id ? "border-brand-emerald/36 bg-brand-emerald/12" : "border-[#eadbc8]/80 bg-[#fff8ef]/56 hover:bg-[#fffdf8]"}`}>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold text-brand-ink">{user.fullName}</span>
                   <InfoPill>{user.role}</InfoPill>

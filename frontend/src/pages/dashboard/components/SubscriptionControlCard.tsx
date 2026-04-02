@@ -23,7 +23,7 @@ export function SubscriptionControlCard({ plans, plansLoading, plansError, check
           </select>
         </label>
         <Button type="submit" disabled={checkoutDisabled}>Continue to payment</Button>
-        {plansError ? <p className="text-sm text-rose-700">Live plan fetch failed: {plansError}</p> : null}
+        {plansError ? <p className="text-sm text-[#8b5743]">Live plan fetch failed: {plansError}</p> : null}
         {!plansLoading && !plans.length ? <EmptyState title="Plans unavailable" message="Billing plans could not be loaded. Check the backend billing configuration and retry." /> : null}
       </form>
 

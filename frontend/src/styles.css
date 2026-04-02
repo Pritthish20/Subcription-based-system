@@ -1,59 +1,59 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 @theme {
   --font-sans: "Sora", "Segoe UI", sans-serif;
-  --color-brand-ink: #0f1720;
-  --color-brand-night: #111a2a;
-  --color-brand-emerald: #1d7a63;
-  --color-brand-gold: #d6a64c;
-  --color-brand-blush: #e78467;
-  --color-brand-mist: #f5f1e8;
-  --color-brand-cloud: #f7f8fb;
-  --color-brand-line: rgba(148, 163, 184, 0.22);
+  --color-brand-ink: #2b241d;
+  --color-brand-night: #1b2a1f;
+  --color-brand-emerald: #6e8f6a;
+  --color-brand-gold: #c8a96b;
+  --color-brand-blush: #b86a4f;
+  --color-brand-mist: #efe3d2;
+  --color-brand-cloud: #f6f1e8;
+  --color-brand-line: rgba(90, 74, 58, 0.18);
 }
 
 :root {
   --app-bg:
-    radial-gradient(circle at top left, rgba(29, 122, 99, 0.18), transparent 24%),
-    radial-gradient(circle at top right, rgba(214, 166, 76, 0.16), transparent 28%),
-    radial-gradient(circle at bottom left, rgba(231, 132, 103, 0.14), transparent 22%),
-    linear-gradient(180deg, #f8f9fb 0%, #f4efe7 100%);
-  --surface-bg: rgba(255, 255, 255, 0.72);
-  --surface-soft-bg: rgba(255, 255, 255, 0.58);
-  --surface-border: rgba(255, 255, 255, 0.7);
-  --surface-shadow: 0 28px 80px rgba(15, 23, 32, 0.09);
-  --surface-soft-shadow: 0 20px 55px rgba(15, 23, 32, 0.06);
-  --field-bg: rgba(255, 255, 255, 0.82);
-  --field-border: rgba(255, 255, 255, 0.72);
-  --field-text: #0f1720;
-  --muted-text: #64748b;
-  --muted-card: rgba(248, 250, 252, 0.92);
+    radial-gradient(circle at top left, rgba(110, 143, 106, 0.24), transparent 26%),
+    radial-gradient(circle at top right, rgba(200, 169, 107, 0.2), transparent 30%),
+    radial-gradient(circle at bottom left, rgba(184, 106, 79, 0.14), transparent 22%),
+    linear-gradient(180deg, #fbf8f1 0%, #f3ebde 100%);
+  --surface-bg: rgba(255, 249, 240, 0.8);
+  --surface-soft-bg: rgba(252, 246, 238, 0.68);
+  --surface-border: rgba(255, 250, 243, 0.8);
+  --surface-shadow: 0 28px 80px rgba(43, 36, 29, 0.1);
+  --surface-soft-shadow: 0 20px 55px rgba(43, 36, 29, 0.08);
+  --field-bg: rgba(255, 251, 245, 0.88);
+  --field-border: rgba(219, 203, 181, 0.68);
+  --field-text: #2b241d;
+  --muted-text: #756657;
+  --muted-card: rgba(248, 241, 231, 0.94);
   color-scheme: light;
 }
 
 :root[data-theme="dark"] {
-  --color-brand-ink: #e8edf7;
-  --color-brand-night: #060d18;
-  --color-brand-emerald: #44c4a0;
-  --color-brand-gold: #f0c36c;
-  --color-brand-blush: #f3a08b;
-  --color-brand-mist: #111827;
-  --color-brand-cloud: #050b14;
+  --color-brand-ink: #f4eadb;
+  --color-brand-night: #101913;
+  --color-brand-emerald: #88aa84;
+  --color-brand-gold: #d8ba82;
+  --color-brand-blush: #d28f77;
+  --color-brand-mist: #171d18;
+  --color-brand-cloud: #0d120f;
   --app-bg:
-    radial-gradient(circle at top left, rgba(68, 196, 160, 0.18), transparent 22%),
-    radial-gradient(circle at top right, rgba(240, 195, 108, 0.14), transparent 24%),
-    radial-gradient(circle at bottom left, rgba(243, 160, 139, 0.14), transparent 20%),
-    linear-gradient(180deg, #07111c 0%, #040910 100%);
-  --surface-bg: rgba(12, 19, 32, 0.74);
-  --surface-soft-bg: rgba(12, 19, 32, 0.62);
-  --surface-border: rgba(148, 163, 184, 0.16);
-  --surface-shadow: 0 28px 80px rgba(2, 6, 23, 0.42);
-  --surface-soft-shadow: 0 20px 55px rgba(2, 6, 23, 0.34);
-  --field-bg: rgba(15, 23, 32, 0.88);
-  --field-border: rgba(148, 163, 184, 0.18);
-  --field-text: #e5eef9;
-  --muted-text: #9fb0c5;
-  --muted-card: rgba(15, 23, 32, 0.84);
+    radial-gradient(circle at top left, rgba(136, 170, 132, 0.18), transparent 22%),
+    radial-gradient(circle at top right, rgba(216, 186, 130, 0.14), transparent 24%),
+    radial-gradient(circle at bottom left, rgba(210, 143, 119, 0.14), transparent 20%),
+    linear-gradient(180deg, #111712 0%, #0b0f0c 100%);
+  --surface-bg: rgba(21, 28, 22, 0.78);
+  --surface-soft-bg: rgba(24, 31, 24, 0.66);
+  --surface-border: rgba(157, 143, 120, 0.18);
+  --surface-shadow: 0 28px 80px rgba(5, 8, 6, 0.44);
+  --surface-soft-shadow: 0 20px 55px rgba(5, 8, 6, 0.34);
+  --field-bg: rgba(24, 31, 24, 0.9);
+  --field-border: rgba(157, 143, 120, 0.2);
+  --field-text: #f4eadb;
+  --muted-text: #c0b29f;
+  --muted-card: rgba(27, 34, 28, 0.86);
   color-scheme: dark;
 }
 
@@ -67,12 +67,12 @@
   }
 
   body {
-    @apply min-h-screen bg-[var(--color-brand-cloud)] font-sans text-slate-900 antialiased;
+    @apply min-h-screen bg-[var(--color-brand-cloud)] font-sans text-brand-ink antialiased leading-relaxed;
     background-image: var(--app-bg);
   }
 
   ::selection {
-    background: rgba(29, 122, 99, 0.22);
+    background: rgba(110, 143, 106, 0.3);
   }
 
   #root {
@@ -80,7 +80,18 @@
   }
 
   a {
-    @apply transition-colors;
+    @apply transition-colors duration-200;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
   }
 
   button,
@@ -93,7 +104,7 @@
   input,
   select,
   textarea {
-    @apply w-full rounded-[1.35rem] px-4 py-3 shadow-[0_12px_28px_rgba(15,23,32,0.06)] outline-none transition duration-200 placeholder:text-slate-400;
+    @apply w-full rounded-[1.35rem] px-4 py-3 shadow-[0_12px_28px_rgba(43,36,29,0.08)] outline-none transition duration-200 placeholder:text-[#9b8a79];
     background: var(--field-bg);
     border: 1px solid var(--field-border);
     color: var(--field-text);
@@ -102,15 +113,15 @@
   input:focus,
   select:focus,
   textarea:focus {
-    border-color: rgba(29, 122, 99, 0.5);
-    box-shadow: 0 0 0 4px rgba(29, 122, 99, 0.12);
+    border-color: rgba(110, 143, 106, 0.58);
+    box-shadow: 0 0 0 4px rgba(110, 143, 106, 0.14);
   }
 
   input:disabled,
   select:disabled,
   textarea:disabled {
     @apply cursor-not-allowed shadow-none;
-    background: rgba(148, 163, 184, 0.14);
+    background: rgba(181, 167, 147, 0.16);
     color: var(--muted-text);
   }
 }
@@ -125,20 +136,29 @@
 
   .surface-panel-strong {
     @apply rounded-[2rem] text-white;
-    border: 1px solid rgba(148, 163, 184, 0.14);
-    background: linear-gradient(180deg, rgba(17, 26, 42, 0.96), rgba(15, 23, 32, 0.92));
-    box-shadow: 0 30px 90px rgba(15, 23, 32, 0.28);
+    border: 1px solid rgba(232, 220, 202, 0.1);
+    background:
+      radial-gradient(circle at top right, rgba(200, 169, 107, 0.2), transparent 32%),
+      linear-gradient(180deg, rgba(35, 52, 39, 0.98), rgba(27, 42, 31, 0.94));
+    box-shadow: 0 30px 90px rgba(24, 31, 24, 0.3);
   }
 
   .surface-soft {
     @apply rounded-[1.7rem] backdrop-blur-md;
     background: var(--surface-soft-bg);
-    border: 1px solid rgba(148, 163, 184, 0.18);
+    border: 1px solid rgba(179, 160, 133, 0.2);
     box-shadow: var(--surface-soft-shadow);
   }
 
   .eyebrow {
     @apply text-[0.72rem] font-semibold uppercase tracking-[0.32em] text-brand-emerald;
+  }
+
+  .detail-chip {
+    @apply inline-flex items-center rounded-full border px-3.5 py-2 text-sm font-medium backdrop-blur-sm;
+    border-color: rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(239, 226, 207, 0.9);
   }
 
   .grid-overlay {
@@ -162,6 +182,6 @@
 
   .theme-card {
     background: var(--muted-card);
-    border: 1px solid rgba(148, 163, 184, 0.16);
+    border: 1px solid rgba(179, 160, 133, 0.18);
   }
 }

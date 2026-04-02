@@ -7,11 +7,18 @@ export const checkoutSchema = z.object({
 });
 
 export const verifySubscriptionPaymentSchema = z.object({
+  checkoutKind: z.literal("subscription"),
   planId: z.string().min(1),
   subscriptionId: z.string().min(1),
   paymentId: z.string().min(1),
   signature: z.string().min(1)
-});
+}).or(z.object({
+  checkoutKind: z.literal("order"),
+  planId: z.string().min(1),
+  orderId: z.string().min(1),
+  paymentId: z.string().min(1),
+  signature: z.string().min(1)
+}));
 
 export const cancelSubscriptionSchema = z.object({
   reason: z.string().max(240).optional()

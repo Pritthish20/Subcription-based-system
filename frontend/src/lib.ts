@@ -20,7 +20,7 @@ declare global {
   }
 }
 
-export type RazorpaySubscriptionCheckout = {
+type RazorpayRecurringSubscriptionCheckout = {
   kind: "subscription";
   key: string;
   subscriptionId: string;
@@ -32,6 +32,23 @@ export type RazorpaySubscriptionCheckout = {
   successUrl: string;
   cancelUrl: string;
 };
+
+type RazorpayTestSubscriptionCheckout = {
+  kind: "subscription-order";
+  key: string;
+  orderId: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  prefill?: { name?: string; email?: string };
+  notes?: Record<string, string>;
+  theme?: { color?: string };
+  successUrl: string;
+  cancelUrl: string;
+};
+
+export type RazorpaySubscriptionCheckout = RazorpayRecurringSubscriptionCheckout | RazorpayTestSubscriptionCheckout;
 
 export type RazorpayDonationCheckout = {
   kind: "donation";
@@ -83,7 +100,11 @@ function extractApiError(error: unknown) {
   if (axios.isAxiosError(error)) {
     const payload = error.response?.data as ApiResponse<unknown> | undefined;
     if (payload && typeof payload === "object" && "success" in payload && payload.success === false) {
-      return payload.error.issues?.join(", ") || payload.error.message;
+      const context = payload.error.context as Record<string, unknown> | undefined;
+      const providerReason = typeof context?.reason === "string" ? context.reason : undefined;
+      const providerDescription = typeof context?.providerDescription === "string" ? context.providerDescription : undefined;
+      const providerMessage = typeof context?.providerMessage === "string" ? context.providerMessage : undefined;
+      return payload.error.issues?.join(", ") || providerReason || providerDescription || providerMessage || payload.error.message;
     }
 
     return error.message || "Request failed";
@@ -257,3 +278,5 @@ export async function uploadWinnerProof(file: File) {
 export function currency(value: number) {
   return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value);
 }
+
+

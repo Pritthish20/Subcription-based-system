@@ -1,4 +1,4 @@
-﻿import type { PropsWithChildren } from "react";
+import type { PropsWithChildren } from "react";
 import { motion } from "framer-motion";
 import { useThemeMode } from "../../lib/hooks/useThemeMode";
 import type { SessionUser } from "../../lib/types/app";
@@ -18,9 +18,9 @@ export function AppShell({ children, session, setSession }: PropsWithChildren<{ 
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: "easeOut" }} className="flex-1">
           {children}
         </motion.div>
-        <footer className="mt-12 border-t border-white/55 py-6 text-sm muted-copy">
+        <footer className="mt-12 border-t border-[#eadbc8]/80 py-6 text-sm muted-copy">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p>Golf Charity Subscription Platform · impact-led, admin-ready, submission-focused.</p>
+            <p>Golf Charity Subscription Platform � impact-led, admin-ready, submission-focused.</p>
             <p>Built for responsive public, subscriber, and admin experiences.</p>
           </div>
         </footer>

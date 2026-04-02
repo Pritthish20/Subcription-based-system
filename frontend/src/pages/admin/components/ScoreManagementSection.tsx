@@ -1,4 +1,4 @@
-﻿import { Button, GhostButton } from "../../../components/Button";
+import { Button, GhostButton } from "../../../components/Button";
 import { Panel } from "../../../components/Panel";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { ErrorState } from "../../../components/ui/ErrorState";
@@ -16,7 +16,7 @@ export function ScoreManagementSection({ scores, scoresError, onRetry, selectedS
       <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
         <div className="space-y-3">
           {scores.length ? scores.slice(0, 12).map((score) => (
-            <button key={score._id} type="button" onClick={() => onSelectScore(score)} className={`w-full rounded-2xl border px-4 py-4 text-left transition ${selectedScoreId === score._id ? "border-brand-emerald bg-brand-emerald/8" : "border-slate-200/70 bg-white/45 hover:bg-white/72"}`}>
+            <button key={score._id} type="button" onClick={() => onSelectScore(score)} className={`w-full rounded-2xl border px-4 py-4 text-left transition ${selectedScoreId === score._id ? "border-brand-emerald/36 bg-brand-emerald/12" : "border-[#eadbc8]/80 bg-[#fff8ef]/56 hover:bg-[#fffdf8]"}`}>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold text-brand-ink">{score.userId?.fullName ?? "Unknown player"}</span>
                 <InfoPill>{score.score} pts</InfoPill>

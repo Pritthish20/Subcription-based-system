@@ -1,4 +1,4 @@
-﻿import { MetricCard } from "../../../components/MetricCard";
+import { MetricCard } from "../../../components/MetricCard";
 import { Panel } from "../../../components/Panel";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { currency } from "../../../lib";
@@ -63,7 +63,7 @@ export function AdminAnalyticsSection({ dashboard, charities, featuredCharities 
             </div>
             <div className="flex flex-wrap gap-2">
               {dashboard.latestPublishedDraw.officialNumbers.map((number) => (
-                <span key={number} className="rounded-full bg-white px-3 py-2 text-sm font-semibold text-brand-ink shadow-sm">{number}</span>
+                <span key={number} className="rounded-full bg-[#fff8ef] px-3 py-2 text-sm font-semibold text-brand-ink shadow-sm">{number}</span>
               ))}
             </div>
             <p>Rollover carried: {currency(dashboard.latestPublishedDraw.rolloverAmount ?? 0)}</p>

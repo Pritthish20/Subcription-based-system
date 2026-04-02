@@ -1,4 +1,4 @@
-﻿import { Button, SecondaryButton } from "../../../components/Button";
+import { Button, SecondaryButton } from "../../../components/Button";
 import { Panel } from "../../../components/Panel";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { ErrorState } from "../../../components/ui/ErrorState";
@@ -24,9 +24,9 @@ export function WinnerQueueSection({ winnerClaims, winnerClaimsError, onRetry, r
                   <p>{claim.userId?.email ?? "No email"}</p>
                   <p>Draw {claim.drawCycleId?.month ?? "Unknown"} - Prize {currency(claim.prizeAmount ?? 0)}</p>
                   <p>Review: {claim.reviewStatus} - Payout: {claim.payoutStatus}</p>
-                  {claim.proofUrl ? <a className="text-brand-emerald underline" href={claim.proofUrl} target="_blank" rel="noreferrer">Open proof</a> : <p className="text-amber-700">Proof not uploaded yet</p>}
+                  {claim.proofUrl ? <a className="text-brand-emerald underline" href={claim.proofUrl} target="_blank" rel="noreferrer">Open proof</a> : <p className="text-[#9d6d2f]">Proof not uploaded yet</p>}
                 </div>
-                {claim.drawCycleId?.officialNumbers?.length ? <div className="rounded-2xl bg-white px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Numbers: {claim.drawCycleId.officialNumbers.join(", ")}</div> : null}
+                {claim.drawCycleId?.officialNumbers?.length ? <div className="rounded-2xl bg-[#fff8ef] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#7b6a58]">Numbers: {claim.drawCycleId.officialNumbers.join(", ")}</div> : null}
               </div>
 
               <label className="grid gap-2 text-sm muted-copy">
