@@ -2,6 +2,9 @@ import type { ButtonHTMLAttributes, PropsWithChildren } from "react";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
+type ButtonProps = PropsWithChildren<ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: Size }>;
+
+type VariantButtonProps = PropsWithChildren<ButtonHTMLAttributes<HTMLButtonElement> & { size?: Size }>;
 
 const variantClasses: Record<Variant, string> = {
   primary: "border border-brand-night/90 bg-brand-night text-white shadow-[0_18px_40px_rgba(27,42,31,0.24)] hover:-translate-y-0.5 hover:border-[#243629] hover:bg-[#243629] focus-visible:ring-brand-emerald/18",
@@ -16,7 +19,7 @@ const sizeClasses: Record<Size, string> = {
   lg: "px-6 py-3.5 text-[0.98rem]"
 };
 
-export function Button({ children, className = "", variant = "primary", size = "md", ...props }: PropsWithChildren<ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: Size }>) {
+export function Button({ children, className = "", variant = "primary", size = "md", ...props }: ButtonProps) {
   return (
     <button
       className={`inline-flex items-center justify-center gap-2 rounded-full font-semibold tracking-[0.01em] transition duration-200 transform-gpu focus-visible:outline-none focus-visible:ring-4 disabled:cursor-not-allowed disabled:opacity-60 ${variantClasses[variant]} ${sizeClasses[size]} ${className}`.trim()}
@@ -27,6 +30,6 @@ export function Button({ children, className = "", variant = "primary", size = "
   );
 }
 
-export const SecondaryButton = (props: PropsWithChildren<ButtonHTMLAttributes<HTMLButtonElement>>) => <Button variant="secondary" {...props} />;
-export const GhostButton = (props: PropsWithChildren<ButtonHTMLAttributes<HTMLButtonElement>>) => <Button variant="ghost" {...props} />;
-export const DangerButton = (props: PropsWithChildren<ButtonHTMLAttributes<HTMLButtonElement>>) => <Button variant="danger" {...props} />;
+export const SecondaryButton = (props: VariantButtonProps) => <Button variant="secondary" {...props} />;
+export const GhostButton = (props: VariantButtonProps) => <Button variant="ghost" {...props} />;
+export const DangerButton = (props: VariantButtonProps) => <Button variant="danger" {...props} />;

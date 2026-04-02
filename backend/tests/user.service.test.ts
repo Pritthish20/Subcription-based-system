@@ -94,6 +94,7 @@ describe("user.service dashboard", () => {
     mocks.winnerClaimFindById.mockResolvedValue({
       _id: "claim-1",
       userId: { toString: () => "user-1" },
+      reviewStatus: "pending",
       save: vi.fn()
     });
 
@@ -106,12 +107,32 @@ describe("user.service dashboard", () => {
     });
   });
 
+  it("rejects duplicate proof submission once a proof already exists", async () => {
+    mocks.getEnv.mockReturnValue({ APP_ENV: "demo" });
+    mocks.winnerClaimFindById.mockResolvedValue({
+      _id: "claim-1",
+      userId: { toString: () => "user-1" },
+      reviewStatus: "pending",
+      proofUrl: "https://res.cloudinary.com/demo/image/upload/proof.png",
+      save: vi.fn()
+    });
+
+    await expect(submitWinnerProof("claim-1", {
+      proofUrl: "https://res.cloudinary.com/demo/image/upload/proof-2.png",
+      notes: "updated"
+    }, "user-1")).rejects.toMatchObject({
+      statusCode: 409,
+      code: "WINNER_PROOF_ALREADY_SUBMITTED"
+    });
+  });
+
   it("allows direct proof URLs in demo mode", async () => {
     const save = vi.fn();
     mocks.getEnv.mockReturnValue({ APP_ENV: "demo" });
     mocks.winnerClaimFindById.mockResolvedValue({
       _id: "claim-1",
       userId: { toString: () => "user-1" },
+      reviewStatus: "pending",
       save
     });
 

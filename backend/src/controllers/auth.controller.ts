@@ -22,16 +22,24 @@ function resolveRefreshToken(req: Request, payload: Partial<RefreshTokenInput & 
   return payload.refreshToken ?? readCookie(req, REFRESH_TOKEN_COOKIE);
 }
 
+function sessionResponse(session: Awaited<ReturnType<typeof loginUser>>) {
+  return {
+    user: session.user,
+    accessToken: session.accessToken,
+    refreshToken: session.refreshToken
+  };
+}
+
 export const registerController = asyncHandler("auth.registerController", async (req, res) => {
   const session = await registerUser(req.body as RegisterInput);
   setSessionCookies(res, session.accessToken, session.refreshToken);
-  ok(res, { user: session.user }, 201);
+  ok(res, sessionResponse(session), 201);
 });
 
 export const loginController = asyncHandler("auth.loginController", async (req, res) => {
   const session = await loginUser(req.body as LoginInput);
   setSessionCookies(res, session.accessToken, session.refreshToken);
-  ok(res, { user: session.user });
+  ok(res, sessionResponse(session));
 });
 
 export const refreshController = asyncHandler("auth.refreshController", async (req, res) => {
@@ -44,7 +52,7 @@ export const refreshController = asyncHandler("auth.refreshController", async (r
   try {
     const session = await refreshUserSession({ refreshToken });
     setSessionCookies(res, session.accessToken, session.refreshToken);
-    ok(res, { user: session.user });
+    ok(res, sessionResponse(session));
   } catch (error) {
     clearSessionCookies(res);
     throw error;
@@ -68,5 +76,5 @@ export const forgotPasswordController = asyncHandler("auth.forgotPasswordControl
 export const resetPasswordController = asyncHandler("auth.resetPasswordController", async (req, res) => {
   const session = await resetPassword(req.body as ResetPasswordInput);
   setSessionCookies(res, session.accessToken, session.refreshToken);
-  ok(res, { user: session.user });
+  ok(res, sessionResponse(session));
 });

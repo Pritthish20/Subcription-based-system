@@ -13,41 +13,47 @@ export function WinnerQueueSection({ winnerClaims, winnerClaimsError, onRetry, r
       {winnerClaimsError && !winnerClaims.length ? <ErrorState message={winnerClaimsError} onRetry={onRetry} /> : null}
       {winnerClaims.length ? (
         <ul className="space-y-4 text-sm muted-copy">
-          {winnerClaims.map((claim) => (
-            <li key={claim._id} className="theme-card space-y-4 rounded-2xl px-4 py-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold text-brand-ink">{claim.userId?.fullName ?? "Unknown winner"}</span>
-                    <InfoPill>{claim.tier}-match</InfoPill>
+          {winnerClaims.map((claim) => {
+            const reviewLocked = claim.reviewStatus !== "pending";
+            const approveLabel = claim.reviewStatus === "approved" ? "Approved" : reviewingClaimId === claim._id ? "Saving..." : "Approve";
+            const rejectLabel = claim.reviewStatus === "rejected" ? "Rejected" : reviewingClaimId === claim._id ? "Saving..." : "Reject";
+
+            return (
+              <li key={claim._id} className="theme-card space-y-4 rounded-2xl px-4 py-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-brand-ink">{claim.userId?.fullName ?? "Unknown winner"}</span>
+                      <InfoPill>{claim.tier}-match</InfoPill>
+                    </div>
+                    <p>{claim.userId?.email ?? "No email"}</p>
+                    <p>Draw {claim.drawCycleId?.month ?? "Unknown"} - Prize {currency(claim.prizeAmount ?? 0)}</p>
+                    <p>Review: {claim.reviewStatus} - Payout: {claim.payoutStatus}</p>
+                    {claim.proofUrl ? <a className="text-brand-emerald underline" href={claim.proofUrl} target="_blank" rel="noreferrer">Open proof</a> : <p className="text-[#9d6d2f]">Proof not uploaded yet</p>}
                   </div>
-                  <p>{claim.userId?.email ?? "No email"}</p>
-                  <p>Draw {claim.drawCycleId?.month ?? "Unknown"} - Prize {currency(claim.prizeAmount ?? 0)}</p>
-                  <p>Review: {claim.reviewStatus} - Payout: {claim.payoutStatus}</p>
-                  {claim.proofUrl ? <a className="text-brand-emerald underline" href={claim.proofUrl} target="_blank" rel="noreferrer">Open proof</a> : <p className="text-[#9d6d2f]">Proof not uploaded yet</p>}
+                  {claim.drawCycleId?.officialNumbers?.length ? <div className="rounded-2xl bg-[#fff8ef] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#7b6a58]">Numbers: {claim.drawCycleId.officialNumbers.join(", ")}</div> : null}
                 </div>
-                {claim.drawCycleId?.officialNumbers?.length ? <div className="rounded-2xl bg-[#fff8ef] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#7b6a58]">Numbers: {claim.drawCycleId.officialNumbers.join(", ")}</div> : null}
-              </div>
 
-              <label className="grid gap-2 text-sm muted-copy">
-                Admin notes
-                <textarea className="min-h-24" value={reviewNotesById[claim._id] ?? claim.adminNotes ?? ""} onChange={(event) => setReviewNotesById((current) => ({ ...current, [claim._id]: event.target.value }))} />
-              </label>
-
-              <div className="flex flex-wrap gap-3">
-                <Button type="button" onClick={() => onReviewClaim(claim._id, "approved")} disabled={reviewingClaimId === claim._id}>{reviewingClaimId === claim._id ? "Saving..." : "Approve"}</Button>
-                <SecondaryButton type="button" onClick={() => onReviewClaim(claim._id, "rejected")} disabled={reviewingClaimId === claim._id}>{reviewingClaimId === claim._id ? "Saving..." : "Reject"}</SecondaryButton>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-[1fr_auto]">
                 <label className="grid gap-2 text-sm muted-copy">
-                  Payout reference
-                  <input value={payoutReferenceById[claim._id] ?? ""} onChange={(event) => setPayoutReferenceById((current) => ({ ...current, [claim._id]: event.target.value }))} placeholder="UTR / bank reference / transfer id" />
+                  Admin notes
+                  <textarea className="min-h-24" value={reviewNotesById[claim._id] ?? claim.adminNotes ?? ""} onChange={(event) => setReviewNotesById((current) => ({ ...current, [claim._id]: event.target.value }))} />
                 </label>
-                <Button type="button" className="self-end" onClick={() => onMarkPaid(claim._id)} disabled={claim.reviewStatus !== "approved" || claim.payoutStatus === "paid" || payingClaimId === claim._id}>{claim.payoutStatus === "paid" ? "Paid" : payingClaimId === claim._id ? "Marking..." : "Mark paid"}</Button>
-              </div>
-            </li>
-          ))}
+
+                <div className="flex flex-wrap gap-3">
+                  <Button type="button" onClick={() => onReviewClaim(claim._id, "approved")} disabled={reviewLocked || reviewingClaimId === claim._id}>{approveLabel}</Button>
+                  <SecondaryButton type="button" onClick={() => onReviewClaim(claim._id, "rejected")} disabled={reviewLocked || reviewingClaimId === claim._id}>{rejectLabel}</SecondaryButton>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                  <label className="grid gap-2 text-sm muted-copy">
+                    Payout reference
+                    <input value={payoutReferenceById[claim._id] ?? ""} onChange={(event) => setPayoutReferenceById((current) => ({ ...current, [claim._id]: event.target.value }))} placeholder="UTR / bank reference / transfer id" />
+                  </label>
+                  <Button type="button" className="self-end" onClick={() => onMarkPaid(claim._id)} disabled={claim.reviewStatus !== "approved" || claim.payoutStatus === "paid" || payingClaimId === claim._id}>{claim.payoutStatus === "paid" ? "Paid" : payingClaimId === claim._id ? "Marking..." : "Mark paid"}</Button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <EmptyState title="No winner claims yet" message="Published draws with winners will appear here for proof review and payout handling." />

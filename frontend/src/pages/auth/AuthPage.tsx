@@ -16,7 +16,7 @@ import {
 } from "@shared/index";
 import { Button, GhostButton } from "../../components/Button";
 import { Panel } from "../../components/Panel";
-import { currency, request } from "../../lib";
+import { currency, request, setTokenSession } from "../../lib";
 import type { Charity, Plan, SessionUser } from "../../lib/types/app";
 
 function FieldError({ message }: { message?: string }) {
@@ -44,7 +44,8 @@ export function AuthPage({ charities, plans, setSession }: { charities: Charity[
   const handleLogin = loginForm.handleSubmit(async (values) => {
     try {
       setPending("login");
-      const response = await request<{ user: SessionUser }>("/auth/login", { method: "POST", body: JSON.stringify(values), useAuth: false });
+      const response = await request<{ user: SessionUser; accessToken?: string; refreshToken?: string }>("/auth/login", { method: "POST", body: JSON.stringify(values), useAuth: false });
+      setTokenSession({ accessToken: response.accessToken ?? null, refreshToken: response.refreshToken ?? null });
       setSession(response.user);
       toast.success("Logged in successfully");
       navigate(response.user.role === "admin" && redirectTo === "/admin" ? "/admin" : "/dashboard", { replace: true });
@@ -58,7 +59,8 @@ export function AuthPage({ charities, plans, setSession }: { charities: Charity[
   const handleRegister = registerForm.handleSubmit(async (values) => {
     try {
       setPending("register");
-      const response = await request<{ user: SessionUser }>("/auth/register", { method: "POST", body: JSON.stringify(values), useAuth: false });
+      const response = await request<{ user: SessionUser; accessToken?: string; refreshToken?: string }>("/auth/register", { method: "POST", body: JSON.stringify(values), useAuth: false });
+      setTokenSession({ accessToken: response.accessToken ?? null, refreshToken: response.refreshToken ?? null });
       setSession(response.user);
       toast.success("Account created");
       navigate("/dashboard", { replace: true });
@@ -85,7 +87,8 @@ export function AuthPage({ charities, plans, setSession }: { charities: Charity[
   const handleResetPassword = resetForm.handleSubmit(async (values) => {
     try {
       setPending("reset");
-      const response = await request<{ user: SessionUser }>("/auth/reset-password", { method: "POST", body: JSON.stringify(values), useAuth: false });
+      const response = await request<{ user: SessionUser; accessToken?: string; refreshToken?: string }>("/auth/reset-password", { method: "POST", body: JSON.stringify(values), useAuth: false });
+      setTokenSession({ accessToken: response.accessToken ?? null, refreshToken: response.refreshToken ?? null });
       setSession(response.user);
       toast.success("Password reset successful");
       navigate("/dashboard", { replace: true });
@@ -260,3 +263,5 @@ export function AuthPage({ charities, plans, setSession }: { charities: Charity[
     </main>
   );
 }
+
+

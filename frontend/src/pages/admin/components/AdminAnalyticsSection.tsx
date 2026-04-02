@@ -15,10 +15,10 @@ export function AdminAnalyticsSection({ dashboard, charities, featuredCharities 
           <p className="mt-1 text-sm muted-copy">Ledger-backed totals across subscription allocations, independent donations, and charity selection behavior.</p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          <MetricCard value={currency(dashboard?.charityContributionTotals ?? 0)} label="Total charity contribution" />
-          <MetricCard value={currency(dashboard?.subscriptionDonationTotals ?? 0)} label="Subscription allocations" />
-          <MetricCard value={currency(dashboard?.independentDonationTotals ?? 0)} label="Independent donations" />
-          <MetricCard value={`${Math.round(dashboard?.avgCharityPercentage ?? 0)}%`} label="Avg charity percentage" />
+          <MetricCard value={currency(dashboard?.charityContributionTotals ?? 0)} label="Total charity contribution" size="compact" />
+          <MetricCard value={currency(dashboard?.subscriptionDonationTotals ?? 0)} label="Subscription allocations" size="compact" />
+          <MetricCard value={currency(dashboard?.independentDonationTotals ?? 0)} label="Independent donations" size="compact" />
+          <MetricCard value={`${Math.round(dashboard?.avgCharityPercentage ?? 0)}%`} label="Avg charity percentage" size="compact" />
         </div>
         <div className="surface-soft px-5 py-4 text-sm muted-copy">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -56,18 +56,20 @@ export function AdminAnalyticsSection({ dashboard, charities, featuredCharities 
           <p className="mt-1 text-sm muted-copy">Keep the most recent official result visible while running the next cycle.</p>
         </div>
         {dashboard?.latestPublishedDraw ? (
-          <div className="surface-soft space-y-4 px-5 py-5 text-sm muted-copy">
+          <div className="surface-soft space-y-4 px-5 py-5 text-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="text-lg font-semibold text-brand-ink">{dashboard.latestPublishedDraw.month}</span>
+              <span className="text-lg font-bold tracking-[-0.03em] text-brand-ink">{dashboard.latestPublishedDraw.month}</span>
               <InfoPill>{dashboard.latestPublishedDraw.officialNumbers.length} numbers</InfoPill>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2.5">
               {dashboard.latestPublishedDraw.officialNumbers.map((number) => (
-                <span key={number} className="rounded-full bg-[#fff8ef] px-3 py-2 text-sm font-semibold text-brand-ink shadow-sm">{number}</span>
+                <span key={number} className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-full border border-[#e3d3bf] bg-[#fff8ef] px-3 py-2 text-sm font-bold text-[#2b241d] shadow-[0_10px_22px_rgba(43,36,29,0.08)] dark:border-[#e7d9c6] dark:bg-[#fff5e8] dark:text-[#1b201a]">{number}</span>
               ))}
             </div>
-            <p>Rollover carried: {currency(dashboard.latestPublishedDraw.rolloverAmount ?? 0)}</p>
-            <p>Published at: {dashboard.latestPublishedDraw.publishedAt ? new Date(dashboard.latestPublishedDraw.publishedAt).toLocaleString() : "Recently published"}</p>
+            <div className="space-y-2 text-[0.95rem]">
+              <p className="font-medium text-brand-ink">Rollover carried: <span className="text-brand-gold dark:text-[#e0c38f]">{currency(dashboard.latestPublishedDraw.rolloverAmount ?? 0)}</span></p>
+              <p className="text-brand-ink/78 dark:text-[#efe2cf]/84">Published at: {dashboard.latestPublishedDraw.publishedAt ? new Date(dashboard.latestPublishedDraw.publishedAt).toLocaleString() : "Recently published"}</p>
+            </div>
           </div>
         ) : (
           <EmptyState title="No published draw yet" message="Run and publish the first official draw to unlock the result summary here." />

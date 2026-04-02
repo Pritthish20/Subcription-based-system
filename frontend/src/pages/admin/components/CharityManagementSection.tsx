@@ -1,7 +1,7 @@
 import type { FormEventHandler } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import type { CharityInput } from "@shared/index";
-import { Button, GhostButton, SecondaryButton } from "../../../components/Button";
+import { Button, DangerButton, GhostButton, SecondaryButton } from "../../../components/Button";
 import { Panel } from "../../../components/Panel";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { ErrorState } from "../../../components/ui/ErrorState";
@@ -83,7 +83,7 @@ export function CharityManagementSection({ charityForm, onSubmit, editingCharity
           <ul className="space-y-3 text-sm muted-copy">
             {charities.map((charity) => (
               <li key={charity._id} className="theme-card rounded-2xl px-4 py-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-brand-ink">{charity.name}</span>
@@ -92,9 +92,9 @@ export function CharityManagementSection({ charityForm, onSubmit, editingCharity
                     <p>{charity.category} - {charity.events.length} event{charity.events.length === 1 ? "" : "s"}</p>
                     <p className="line-clamp-2 muted-copy">{charity.description}</p>
                   </div>
-                  <div className="flex gap-2">
-                    <GhostButton type="button" onClick={() => onEditCharity(charity)}>Edit</GhostButton>
-                    <SecondaryButton type="button" onClick={() => onDeleteCharity(charity._id)} disabled={deletingCharityId === charity._id}>{deletingCharityId === charity._id ? "Deleting..." : "Delete"}</SecondaryButton>
+                  <div className="flex flex-wrap gap-2">
+                    <GhostButton type="button" className="min-w-[5.75rem] justify-center" onClick={() => onEditCharity(charity)}>Edit</GhostButton>
+                    <DangerButton type="button" className="min-w-[6.75rem] justify-center border-brand-blush/26 bg-brand-blush/12 text-[#8a4a38] shadow-[0_12px_24px_rgba(184,106,79,0.12)] hover:border-brand-blush/42 hover:bg-brand-blush/18 dark:border-brand-blush/30 dark:bg-brand-blush/18 dark:text-[#f4d8cb] dark:hover:bg-brand-blush/24" onClick={() => onDeleteCharity(charity._id)} disabled={deletingCharityId === charity._id}>{deletingCharityId === charity._id ? "Deleting..." : "Delete"}</DangerButton>
                   </div>
                 </div>
               </li>
@@ -107,3 +107,4 @@ export function CharityManagementSection({ charityForm, onSubmit, editingCharity
     </section>
   );
 }
+

@@ -1,17 +1,17 @@
 import { LogOut, Shield, Sparkles } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import type { ThemeMode } from "../../lib/hooks/useThemeMode";
-import { clearSessionStorage, request } from "../../lib";
+import { clearSessionStorage, getStoredRefreshToken, request } from "../../lib";
 import type { SessionUser } from "../../lib/types/app";
 import { GhostButton } from "../Button";
 import { ThemeToggle } from "./ThemeToggle";
 
-const navClass = ({ isActive }: { isActive: boolean }) => `rounded-full px-4 py-2.5 text-sm font-medium tracking-[0.01em] transition ${isActive ? "bg-brand-night text-white shadow-[0_14px_30px_rgba(27,42,31,0.2)]" : "muted-copy hover:bg-[#fff8ef]/82 hover:text-brand-night"}`;
+const navClass = ({ isActive }: { isActive: boolean }) => `rounded-full border px-4 py-2.5 text-sm font-semibold tracking-[0.01em] transition ${isActive ? "border-brand-emerald/26 bg-brand-night text-white shadow-[0_14px_30px_rgba(27,42,31,0.2)] dark:border-brand-emerald/34 dark:bg-[#233629] dark:text-[#fffaf3] dark:shadow-[0_16px_34px_rgba(5,8,6,0.34)]" : "border-transparent text-brand-night/76 hover:border-brand-emerald/14 hover:bg-[#fff8ef]/82 hover:text-brand-night dark:text-[#e8dbc7]/82 dark:hover:border-[#d8ba82]/20 dark:hover:bg-[#19241c] dark:hover:text-[#fff6ea]"}`;
 
 export function Navbar({ session, setSession, theme, onToggleTheme }: { session: SessionUser | null; setSession: (value: SessionUser | null) => void; theme: ThemeMode; onToggleTheme: () => void }) {
   async function handleLogout() {
     try {
-      await request("/auth/logout", { method: "POST", body: {}, useAuth: false });
+      await request("/auth/logout", { method: "POST", body: JSON.stringify({ refreshToken: getStoredRefreshToken() ?? undefined }), useAuth: false });
     } catch {
       // Clear local session even if the backend logout request fails.
     } finally {
@@ -48,3 +48,4 @@ export function Navbar({ session, setSession, theme, onToggleTheme }: { session:
     </header>
   );
 }
+

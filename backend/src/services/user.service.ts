@@ -112,7 +112,9 @@ export async function submitWinnerProof(claimId: string, payload: WinnerProofInp
     const claim = await WinnerClaim.findById(claimId);
     if (!claim) throw new ApiError(404, "Winner claim not found", { code: "WINNER_CLAIM_NOT_FOUND" });
     if (claim.userId.toString() !== userId) throw new ApiError(403, "This claim does not belong to the current user", { code: "WINNER_CLAIM_FORBIDDEN" });
-    if (!payload.proofUrl) throw new ApiError(400, "A proof upload or proof URL is required", { code: "WINNER_PROOF_REQUIRED" });
+    if (!payload.proofUrl) throw new ApiError(400, "A proof upload is required", { code: "WINNER_PROOF_REQUIRED" });
+    if (claim.proofUrl) throw new ApiError(409, "Proof has already been submitted for this claim", { code: "WINNER_PROOF_ALREADY_SUBMITTED" });
+    if (claim.reviewStatus !== "pending") throw new ApiError(409, "Proof can only be submitted while the claim is pending review", { code: "WINNER_PROOF_REVIEW_CLOSED" });
 
     const env = getEnv();
     if (!isDemoEnv(env) && !isCloudinaryProofUrl(payload.proofUrl)) {

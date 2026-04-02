@@ -89,6 +89,7 @@ export function DashboardPage({ charities }: { charities: Charity[] }) {
   const subscriptionEndsAt = summary?.subscription?.currentPeriodEnd ? new Date(summary.subscription.currentPeriodEnd) : null;
   const hasActiveSubscription = subscriptionStatus === "active" && (!subscriptionEndsAt || subscriptionEndsAt.getTime() > Date.now());
   const pendingClaims = useMemo(() => summary?.claims.filter((claim) => claim.reviewStatus === "pending") ?? [], [summary]);
+  const selectedPendingClaim = useMemo(() => pendingClaims.find((claim) => claim._id === selectedClaimId) ?? pendingClaims[0] ?? null, [pendingClaims, selectedClaimId]);
   const checkoutDisabled = plansLoading || !plans.length;
 
   useEffect(() => {
@@ -337,20 +338,30 @@ export function DashboardPage({ charities }: { charities: Charity[] }) {
   });
 
   const submitProof = proofForm.handleSubmit(async (values) => {
-    const claimId = values.notes && values.notes.startsWith("claim:") ? values.notes.replace(/^claim:/, "").trim() : pendingClaims[0]?._id;
+    const claim = selectedPendingClaim;
 
-    if (!claimId) {
+    if (!claim?._id) {
       toast.error("No pending winner claim is available for proof submission");
+      return;
+    }
+
+    if (claim.proofUrl) {
+      toast.error("Proof has already been submitted for this claim");
+      return;
+    }
+
+    if (!proofFile) {
+      toast.error("Upload a proof screenshot first");
       return;
     }
 
     try {
       setUploadState("uploading");
-      const proofUrl = proofFile ? await uploadWinnerProof(proofFile) : values.proofUrl;
-      await request(`/winner-claims/${claimId}/proof`, { method: "POST", body: JSON.stringify({ proofUrl, notes: values.notes }) });
+      const proofUrl = await uploadWinnerProof(proofFile);
+      await request(`/winner-claims/${claim._id}/proof`, { method: "POST", body: JSON.stringify({ proofUrl, notes: values.notes }) });
       setProofFile(null);
       proofForm.reset({ proofUrl: "", notes: "" });
-      toast.success(proofFile ? "Proof uploaded and submitted" : "Proof submitted");
+      toast.success("Proof uploaded and submitted");
       await refreshDashboard();
     } catch (err) {
       toast.error((err as Error).message);
@@ -375,9 +386,7 @@ export function DashboardPage({ charities }: { charities: Charity[] }) {
 
       <ScoreSection form={scoreForm} onSubmit={submitScore} hasActiveSubscription={hasActiveSubscription} scores={summary?.scores ?? []} />
       <DonationWinningsSection charities={charities} donationForm={donationForm} onSubmitDonation={submitDonation} hasActiveSubscription={hasActiveSubscription} claims={summary?.claims ?? []} />
-      <ProofParticipationSection proofForm={proofForm} onSubmitProof={submitProof} pendingClaims={pendingClaims} selectedClaimId={selectedClaimId} setSelectedClaimId={setSelectedClaimId} setProofFile={setProofFile} uploadState={uploadState} scores={summary?.scores ?? []} hasActiveSubscription={hasActiveSubscription} />
+      <ProofParticipationSection proofForm={proofForm} onSubmitProof={submitProof} pendingClaims={pendingClaims} selectedClaimId={selectedClaimId} setSelectedClaimId={setSelectedClaimId} setProofFile={setProofFile} hasProofFile={Boolean(proofFile)} uploadState={uploadState} scores={summary?.scores ?? []} hasActiveSubscription={hasActiveSubscription} />
     </main>
   );
 }
-
-
