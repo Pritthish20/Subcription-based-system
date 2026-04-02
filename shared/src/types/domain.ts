@@ -6,6 +6,6 @@ export type DrawMode = "random" | "weighted";
 export type DrawStatus = "draft" | "published";
 export type WinnerReviewStatus = "pending" | "approved" | "rejected";
 export type PayoutStatus = "pending" | "paid";
-export type PaymentProvider = "razorpay" | "manual";
+export type PaymentProvider = "razorpay";
 export type TransactionSource = PaymentProvider;
 export type DonationType = "subscription" | "independent";

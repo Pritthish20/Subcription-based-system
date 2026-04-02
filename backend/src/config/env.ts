@@ -10,3 +10,11 @@ export function getEnv(): AppEnv {
 
   return globalCache.appEnv;
 }
+
+export function isDemoEnv(env: AppEnv = getEnv()) {
+  return env.APP_ENV === "demo";
+}
+
+export function isProductionEnv(env: AppEnv = getEnv()) {
+  return env.APP_ENV === "production";
+}

@@ -47,27 +47,58 @@ const mocks = vi.hoisted(() => ({
   drawCycleFind: vi.fn()
 }));
 
-vi.mock("../src/config", () => ({
-  getEnv: () => ({
-    MONGODB_URI: "mongodb://127.0.0.1:27017/test",
-    JWT_ACCESS_SECRET: "test-access-secret",
-    JWT_REFRESH_SECRET: "test-refresh-secret",
-    EMAIL_PROVIDER: "mock",
-    EMAIL_FROM: "no-reply@test.dev",
-    APP_URL: "https://frontend.golf.test",
-    ADDITIONAL_ALLOWED_ORIGINS: "https://preview.golf.test"
-  }),
-  verifyAccessToken: mocks.verifyAccessToken,
-  isAllowedOrigin: (origin?: string) => !origin || ["https://frontend.golf.test", "https://preview.golf.test"].includes(origin),
-  signAccessToken: vi.fn(),
-  signRefreshToken: vi.fn(),
-  verifyRefreshToken: vi.fn(),
-  sendEmail: vi.fn(),
-  configureCloudinary: vi.fn(),
-  getCloudinaryUploadSignature: vi.fn(),
-  getRazorpay: vi.fn(() => null),
-  connectDb: vi.fn()
-}));
+vi.mock("../src/config", () => {
+  const ACCESS_TOKEN_COOKIE = "golf_access_token";
+  const REFRESH_TOKEN_COOKIE = "golf_refresh_token";
+
+  function parseCookie(header: string | string[] | undefined, name: string) {
+    const source = Array.isArray(header) ? header.join("; ") : header;
+    if (!source) return undefined;
+
+    for (const part of source.split(";")) {
+      const trimmed = part.trim();
+      const separatorIndex = trimmed.indexOf("=");
+      if (separatorIndex <= 0) continue;
+      if (trimmed.slice(0, separatorIndex) !== name) continue;
+      return decodeURIComponent(trimmed.slice(separatorIndex + 1));
+    }
+
+    return undefined;
+  }
+
+  return {
+    ACCESS_TOKEN_COOKIE,
+    REFRESH_TOKEN_COOKIE,
+    getEnv: () => ({
+      MONGODB_URI: "mongodb://127.0.0.1:27017/test",
+      JWT_ACCESS_SECRET: "test-access-secret",
+      JWT_REFRESH_SECRET: "test-refresh-secret",
+      EMAIL_PROVIDER: "mock",
+      EMAIL_FROM: "no-reply@test.dev",
+      APP_URL: "https://frontend.golf.test",
+      ADDITIONAL_ALLOWED_ORIGINS: "https://preview.golf.test"
+    }),
+    verifyAccessToken: mocks.verifyAccessToken,
+    isAllowedOrigin: (origin?: string) => !origin || ["https://frontend.golf.test", "https://preview.golf.test"].includes(origin),
+    signAccessToken: vi.fn(),
+    signRefreshToken: vi.fn(),
+    verifyRefreshToken: vi.fn(),
+    sendEmail: vi.fn(),
+    configureCloudinary: vi.fn(),
+    getCloudinaryUploadSignature: vi.fn(),
+    getRazorpay: vi.fn(() => null),
+    connectDb: vi.fn(),
+    setSessionCookies: vi.fn((res, accessToken: string, refreshToken: string) => {
+      res.cookie(ACCESS_TOKEN_COOKIE, accessToken, { httpOnly: true, secure: true, sameSite: "none", path: "/" });
+      res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, { httpOnly: true, secure: true, sameSite: "none", path: "/" });
+    }),
+    clearSessionCookies: vi.fn((res) => {
+      res.clearCookie(ACCESS_TOKEN_COOKIE, { httpOnly: true, secure: true, sameSite: "none", path: "/" });
+      res.clearCookie(REFRESH_TOKEN_COOKIE, { httpOnly: true, secure: true, sameSite: "none", path: "/" });
+    }),
+    readCookie: vi.fn((req, name: string) => parseCookie(req.headers.cookie, name))
+  };
+});
 
 vi.mock("../src/services/auth.service", () => ({
   registerUser: mocks.registerUser,
@@ -201,12 +232,16 @@ describe("API route integration", () => {
     expect(mocks.registerUser).not.toHaveBeenCalled();
   });
 
-  it("returns login data for a valid auth request", async () => {
+  it("returns login user data and session cookies for a valid auth request", async () => {
     const app = createApp();
     const response = await request(app).post("/api/auth/login").send({ email: "subscriber@example.com", password: "Password@123" });
 
     expect(response.status).toBe(200);
-    expect(response.body.data.accessToken).toBe("access-token");
+    expect(response.body.data.user.email).toBe("subscriber@example.com");
+    expect(response.headers["set-cookie"]).toEqual(expect.arrayContaining([
+      expect.stringContaining("golf_access_token=access-token"),
+      expect.stringContaining("golf_refresh_token=refresh-token")
+    ]));
     expect(mocks.loginUser).toHaveBeenCalledWith({ email: "subscriber@example.com", password: "Password@123" });
   });
 
@@ -230,6 +265,15 @@ describe("API route integration", () => {
   it("returns admin user data for authenticated admins", async () => {
     const app = createApp();
     const response = await request(app).get("/api/admin/users").set("Authorization", "Bearer admin-token");
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([subscriberUser]);
+    expect(mocks.listAdminUsers).toHaveBeenCalledTimes(1);
+  });
+
+  it("accepts access token cookies for authenticated admins", async () => {
+    const app = createApp();
+    const response = await request(app).get("/api/admin/users").set("Cookie", "golf_access_token=admin-token");
 
     expect(response.status).toBe(200);
     expect(response.body.data).toEqual([subscriberUser]);

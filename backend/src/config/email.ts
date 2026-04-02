@@ -1,5 +1,5 @@
 import nodemailer, { type Transporter } from "nodemailer";
-import { getEnv } from "./env";
+import { getEnv, isProductionEnv } from "./env";
 
 type EmailMessage = {
   to: string;
@@ -50,6 +50,10 @@ export async function sendEmail(message: EmailMessage): Promise<EmailDeliveryRes
     });
 
     return { provider: "smtp", messageId: info.messageId };
+  }
+
+  if (isProductionEnv(env)) {
+    throw new Error("Mock email delivery is not allowed in production");
   }
 
   return { provider: "mock", messageId: `mock-${Date.now()}` };

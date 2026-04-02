@@ -1,4 +1,4 @@
-﻿export type DashboardScore = {
+export type DashboardScore = {
   _id: string;
   score: number;
   playedAt: string;
@@ -34,4 +34,9 @@ export type DashboardSummary = {
   claims: DashboardClaim[];
   drawsEntered: number;
   winningsTotal: number;
+  upcomingDraw: {
+    month: string;
+    eligible: boolean;
+    status: "eligible" | "inactive";
+  } | null;
 };

@@ -54,21 +54,28 @@ describe("billing service flows", () => {
     mocks.donationFindOne.mockResolvedValue(null);
   });
 
-  it("activates a mock subscription and records ledger entries when Razorpay is absent", async () => {
-    const save = vi.fn();
+  it("rejects subscription checkout when Razorpay is absent", async () => {
     mocks.planFindById.mockResolvedValue({ _id: "plan-1", name: "Monthly", interval: "monthly", amountInr: 1000, providerPlanId: "", prizePoolContributionPercentage: 40 });
-    mocks.userFindById.mockResolvedValue({ _id: "user-1", selectedCharityId: "charity-1", charityPercentage: 20, accountState: "pending", save });
-    mocks.subscriptionFindOneAndUpdate.mockResolvedValue({ _id: "subscription-1" });
-    mocks.transactionCreate.mockResolvedValue({ _id: "transaction-1" });
+    mocks.userFindById.mockResolvedValue({ _id: "user-1", selectedCharityId: "charity-1", charityPercentage: 20, accountState: "pending", save: vi.fn() });
 
-    const result = await handleCheckout("user-1", { planId: "plan-1", successUrl: "http://app/success", cancelUrl: "http://app/cancel" });
+    await expect(handleCheckout("user-1", { planId: "plan-1", successUrl: "http://app/success", cancelUrl: "http://app/cancel" })).rejects.toMatchObject({
+      statusCode: 503,
+      code: "PAYMENT_PROVIDER_UNAVAILABLE"
+    });
+    expect(mocks.subscriptionFindOneAndUpdate).not.toHaveBeenCalled();
+    expect(mocks.transactionCreate).not.toHaveBeenCalled();
+    expect(mocks.donationCreate).not.toHaveBeenCalled();
+  });
 
-    expect(result.mode).toBe("mock");
-    expect(result.checkoutUrl).toBe("http://app/success");
-    expect(save).toHaveBeenCalledOnce();
-    expect(mocks.transactionCreate).toHaveBeenCalledWith(expect.objectContaining({ userId: "user-1", status: "active", amountInr: 1000, source: "manual" }));
-    expect(mocks.donationCreate).toHaveBeenCalledWith(expect.objectContaining({ amountInr: 200, percentage: 20, source: "manual" }));
-    expect(mocks.notify).toHaveBeenCalledWith("user-1", "subscription.activated", expect.any(Object));
+  it("rejects one-time donation when Razorpay is absent", async () => {
+    mocks.userFindById.mockResolvedValue({ _id: "user-1", email: "demo@example.com", fullName: "Demo User" });
+    mocks.charityFindById.mockResolvedValue({ _id: "charity-1", name: "Helping Hands" });
+
+    await expect(handleOneTimeDonation("user-1", { charityId: "charity-1", amount: 500, message: "Keep going", successUrl: "http://app/dashboard", cancelUrl: "http://app/dashboard" })).rejects.toMatchObject({
+      statusCode: 503,
+      code: "PAYMENT_PROVIDER_UNAVAILABLE"
+    });
+    expect(mocks.donationCreate).not.toHaveBeenCalled();
   });
 
   it("creates a Razorpay donation checkout order when the provider is configured", async () => {
@@ -108,7 +115,7 @@ describe("billing service flows", () => {
 
   it("cancels an active subscription and records the cancellation transaction", async () => {
     const save = vi.fn();
-    mocks.subscriptionFindOne.mockResolvedValue({ _id: "subscription-1", planId: "plan-1", status: "active", paymentProvider: "manual", save });
+    mocks.subscriptionFindOne.mockResolvedValue({ _id: "subscription-1", planId: "plan-1", status: "active", paymentProvider: "razorpay", save });
 
     const result = await cancelSubscription("user-1", { reason: "Need a break" });
 
@@ -116,6 +123,16 @@ describe("billing service flows", () => {
     expect(result.cancellationReason).toBe("Need a break");
     expect(save).toHaveBeenCalledOnce();
     expect(mocks.transactionCreate).toHaveBeenCalledWith(expect.objectContaining({ eventType: "subscription.cancelled", status: "cancelled" }));
+  });
+
+  it("rejects webhook handling when the webhook secret is absent", async () => {
+    mocks.getEnv.mockReturnValue({ APP_URL: "http://localhost:5173" });
+
+    await expect(handleWebhook(Buffer.from("{}"), "signature", "evt_123")).rejects.toMatchObject({
+      statusCode: 503,
+      code: "PAYMENT_WEBHOOK_UNAVAILABLE"
+    });
+    expect(mocks.webhookFindOne).not.toHaveBeenCalled();
   });
 
   it("skips duplicate processed Razorpay webhook events", async () => {

@@ -15,6 +15,7 @@ function normalizeOptionalProviderValue(value: unknown) {
 }
 
 const optionalProviderValue = z.preprocess(normalizeOptionalProviderValue, z.string().min(1).optional());
+const optionalEmailValue = z.preprocess(normalizeOptionalProviderValue, z.email().optional());
 const optionalPortValue = z.preprocess((value) => {
   const normalized = normalizeOptionalProviderValue(value);
   if (normalized === undefined) return undefined;
@@ -32,6 +33,7 @@ const optionalBooleanValue = z.preprocess((value) => {
 }, z.boolean().optional());
 
 export const envSchema = z.object({
+  APP_ENV: z.enum(["development", "demo", "production"]).default("development"),
   MONGODB_URI: z.string().min(1),
   JWT_ACCESS_SECRET: z.string().min(8),
   JWT_REFRESH_SECRET: z.string().min(8),
@@ -50,6 +52,8 @@ export const envSchema = z.object({
   SMTP_SECURE: optionalBooleanValue,
   SMTP_USER: optionalProviderValue,
   SMTP_PASS: optionalProviderValue,
+  SEED_ADMIN_EMAIL: optionalEmailValue,
+  SEED_ADMIN_PASSWORD: optionalProviderValue,
   APP_URL: z.string().default("http://localhost:5173"),
   ADDITIONAL_ALLOWED_ORIGINS: z.string().default("")
 });

@@ -17,7 +17,7 @@ import { notify } from "./notification.service";
 const CHECKOUT_THEME_COLOR = "#1D7A63";
 const PLATFORM_NAME = "Digital Heroes Golf Charity";
 
-type ProviderSource = "razorpay" | "manual";
+type ProviderSource = "razorpay";
 type RazorpayEventPayload = {
   event: string;
   created_at?: number;
@@ -80,6 +80,22 @@ function mapRazorpaySubscriptionStatus(status?: string): SubscriptionStatus {
 function verifyRazorpaySignature(payload: string, signature: string, secret: string) {
   const expected = crypto.createHmac("sha256", secret).update(payload).digest("hex");
   return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+}
+
+function requireRazorpayCheckout(env: ReturnType<typeof getEnv>, razorpay: Razorpay | null) {
+  if (!razorpay || !env.RAZORPAY_KEY_ID || !env.RAZORPAY_KEY_SECRET) {
+    throw new ApiError(503, "Razorpay checkout is not configured", { code: "PAYMENT_PROVIDER_UNAVAILABLE" });
+  }
+
+  return razorpay;
+}
+
+function requireRazorpayWebhookSecret(secret?: string) {
+  if (!secret) {
+    throw new ApiError(503, "Razorpay webhook verification is not configured", { code: "PAYMENT_WEBHOOK_UNAVAILABLE" });
+  }
+
+  return secret;
 }
 
 function toProviderApiError(error: unknown, fallbackMessage: string, fallbackCode: string) {
@@ -382,21 +398,12 @@ export async function handleCheckout(userId: string, payload: CheckoutInput) {
     const { user } = await getUserAndCharity(userId);
     const razorpay = getRazorpay();
     const env = getEnv();
+    const checkoutProvider = requireRazorpayCheckout(env, razorpay);
 
-    if (!razorpay || !env.RAZORPAY_KEY_ID || !env.RAZORPAY_KEY_SECRET) {
-      await activateSubscription({ userId, plan, providerReference: `manual-${Date.now()}`, source: "manual" });
-      return {
-        mode: "mock" as const,
-        paymentProvider: "manual" as const,
-        checkoutUrl: payload.successUrl,
-        message: "Razorpay is not configured, so the subscription was activated in zero-cost demo mode."
-      };
-    }
-
-    const providerPlanId = await ensureRazorpayPlan(plan, razorpay);
+    const providerPlanId = await ensureRazorpayPlan(plan, checkoutProvider);
     let remoteSubscription: any;
     try {
-      remoteSubscription = await razorpay.subscriptions.create({
+      remoteSubscription = await checkoutProvider.subscriptions.create({
         plan_id: providerPlanId,
         total_count: plan.interval === "yearly" ? 10 : 120,
         quantity: 1,
@@ -492,21 +499,11 @@ export async function handleOneTimeDonation(userId: string, payload: OneTimeDona
     const cancelUrl = payload.cancelUrl ?? `${env.APP_URL}/dashboard`;
 
     const { user, charity } = await getUserAndCharity(userId, payload.charityId);
-
-    if (!razorpay || !env.RAZORPAY_KEY_ID || !env.RAZORPAY_KEY_SECRET) {
-      const donation = await createIndependentDonationRecord(userId, payload, "manual", `manual-donation-${Date.now()}`);
-      return {
-        mode: "mock" as const,
-        paymentProvider: "manual" as const,
-        checkoutUrl: successUrl,
-        message: "Razorpay is not configured, so the donation was recorded directly in demo mode.",
-        donation
-      };
-    }
+    const donationProvider = requireRazorpayCheckout(env, razorpay);
 
     let order: any;
     try {
-      order = await razorpay.orders.create({
+      order = await donationProvider.orders.create({
         amount: Math.round(payload.amount * 100),
         currency: "INR",
         receipt: `donation_${Date.now()}`,
@@ -608,7 +605,7 @@ export async function cancelSubscription(userId: string, payload: CancelSubscrip
       userId,
       subscriptionId: subscription._id,
       planId: subscription.planId,
-      source: subscription.paymentProvider ?? "manual",
+      source: subscription.paymentProvider ?? "razorpay",
       eventType: "subscription.cancelled",
       amountInr: 0,
       currency: "INR",
@@ -623,13 +620,13 @@ export async function cancelSubscription(userId: string, payload: CancelSubscrip
 export async function handleWebhook(body: unknown, signatureHeader?: string | string[], eventIdHeader?: string | string[]) {
   return runService("billing.service", "handleWebhook", async () => {
     const env = getEnv();
-    if (!env.RAZORPAY_WEBHOOK_SECRET) return { received: true, mode: "mock" as const };
+    const webhookSecret = requireRazorpayWebhookSecret(env.RAZORPAY_WEBHOOK_SECRET);
 
     const signature = Array.isArray(signatureHeader) ? signatureHeader[0] : signatureHeader;
     if (!signature) throw new ApiError(400, "Missing Razorpay signature", { code: "RAZORPAY_SIGNATURE_MISSING" });
 
     const payloadString = Buffer.isBuffer(body) ? body.toString("utf8") : typeof body === "string" ? body : JSON.stringify(body);
-    if (!verifyRazorpaySignature(payloadString, signature, env.RAZORPAY_WEBHOOK_SECRET)) {
+    if (!verifyRazorpaySignature(payloadString, signature, webhookSecret)) {
       throw new ApiError(400, "Invalid Razorpay webhook signature", { code: "RAZORPAY_SIGNATURE_INVALID" });
     }
 
@@ -710,5 +707,7 @@ export async function handleWebhook(body: unknown, signatureHeader?: string | st
     }
   });
 }
+
+
 
 

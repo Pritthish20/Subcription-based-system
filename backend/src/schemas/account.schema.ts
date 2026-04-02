@@ -24,7 +24,7 @@ export const planSchema = new Schema(
     amountInr: { type: Number, required: true },
     charityDefaultPercentage: { type: Number, default: CHARITY_MIN_PERCENTAGE },
     prizePoolContributionPercentage: { type: Number, default: 40 },
-    paymentProvider: { type: String, enum: ["razorpay", "manual"], default: "razorpay" },
+    paymentProvider: { type: String, enum: ["razorpay"], default: "razorpay" },
     providerPlanId: { type: String }
   },
   { timestamps: true }
@@ -35,7 +35,7 @@ export const subscriptionSchema = new Schema(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     planId: { type: Schema.Types.ObjectId, ref: "Plan", required: true },
     status: { type: String, enum: ["incomplete", "active", "past_due", "cancelled", "lapsed"], default: "incomplete" },
-    paymentProvider: { type: String, enum: ["razorpay", "manual"], default: "manual" },
+    paymentProvider: { type: String, enum: ["razorpay"], default: "razorpay" },
     providerCustomerId: { type: String },
     providerSubscriptionId: { type: String },
     currentPeriodStart: { type: Date },

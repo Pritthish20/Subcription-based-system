@@ -1,9 +1,10 @@
-﻿import { HeartHandshake, Trophy, WalletCards } from "lucide-react";
+import { HeartHandshake, Trophy, WalletCards } from "lucide-react";
 import { motion } from "framer-motion";
 import { NavLink } from "react-router-dom";
 import { CharityCard } from "../../components/CharityCard";
 import { MetricCard } from "../../components/MetricCard";
 import { Panel } from "../../components/Panel";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
 import type { Charity, Plan } from "../../lib/types/app";
@@ -39,7 +40,7 @@ export function HomePage({ charities, plans, isLoading, error, onRetry }: { char
           <div className="relative space-y-7">
             <div className="space-y-4">
               <span className="inline-flex rounded-full border border-white/14 bg-white/10 px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-white/72">Impact-led golf subscription</span>
-              <h1 className="max-w-4xl text-4xl font-black tracking-tight text-white sm:text-5xl xl:text-6xl">Back a cause, track your last five rounds, and move into a monthly prize draw without the usual golf cliché aesthetic.</h1>
+              <h1 className="max-w-4xl text-4xl font-black tracking-tight text-white sm:text-5xl xl:text-6xl">Back a cause, track your last five rounds, and move into a monthly prize draw without the usual golf clich� aesthetic.</h1>
               <p className="max-w-2xl text-base leading-7 text-white/72 sm:text-lg">This platform is built around emotional impact first: charities stay visible, subscribers stay engaged, and admins keep full control over score logic, draw publishing, and winner verification.</p>
             </div>
 
@@ -96,20 +97,24 @@ export function HomePage({ charities, plans, isLoading, error, onRetry }: { char
             <span className="eyebrow">Plans</span>
             <h2 className="mt-3 text-3xl font-black tracking-tight text-brand-night">Subscription options built for a clean entry point.</h2>
           </div>
-          <div className="grid gap-4">
-            {plans.map((plan, index) => (
-              <div key={plan._id} className={`rounded-[1.7rem] border px-5 py-5 ${index === 0 ? "border-brand-emerald/22 bg-brand-emerald/6" : "border-slate-200/80 bg-slate-50/70"}`}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-slate-500">{plan.interval}</p>
-                    <h3 className="mt-2 text-2xl font-bold text-brand-night">{plan.name}</h3>
+          {plans.length ? (
+            <div className="grid gap-4">
+              {plans.map((plan, index) => (
+                <div key={plan._id} className={`rounded-[1.7rem] border px-5 py-5 ${index === 0 ? "border-brand-emerald/22 bg-brand-emerald/6" : "border-slate-200/80 bg-slate-50/70"}`}>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-slate-500">{plan.interval}</p>
+                      <h3 className="mt-2 text-2xl font-bold text-brand-night">{plan.name}</h3>
+                    </div>
+                    <div className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-brand-night shadow-sm">{currency(plan.amountInr)}</div>
                   </div>
-                  <div className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-brand-night shadow-sm">{currency(plan.amountInr)}</div>
+                  <p className="mt-4 text-sm leading-6 text-slate-600">Supports charity selection, subscriber eligibility checks, and monthly draw entry without adding friction to onboarding.</p>
                 </div>
-                <p className="mt-4 text-sm leading-6 text-slate-600">Supports charity selection, subscriber eligibility checks, and monthly draw entry without adding friction to onboarding.</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState title="Plans unavailable" message="Live subscription plans could not be loaded. Check the billing configuration or try again." />
+          )}
         </Panel>
 
         <Panel className="space-y-5">
@@ -120,9 +125,13 @@ export function HomePage({ charities, plans, isLoading, error, onRetry }: { char
             </div>
             <NavLink to="/charities" className="hidden rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-brand-night transition hover:bg-slate-50 sm:inline-flex">All charities</NavLink>
           </div>
-          <div className="grid gap-5">
-            {charities.slice(0, 2).map((charity) => <CharityCard key={charity._id} charity={charity} />)}
-          </div>
+          {charities.length ? (
+            <div className="grid gap-5">
+              {charities.slice(0, 2).map((charity) => <CharityCard key={charity._id} charity={charity} />)}
+            </div>
+          ) : (
+            <EmptyState title="Charities unavailable" message="Live charity data could not be loaded. Check the API connection or try again." />
+          )}
         </Panel>
       </section>
     </main>

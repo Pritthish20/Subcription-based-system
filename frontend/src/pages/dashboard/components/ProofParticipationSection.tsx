@@ -1,4 +1,4 @@
-﻿import type { FormEventHandler } from "react";
+import type { FormEventHandler } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import type { WinnerProofInput } from "@shared/index";
 import { Button } from "../../../components/Button";
@@ -19,7 +19,7 @@ export function ProofParticipationSection({ proofForm, onSubmitProof, pendingCla
           Pending claim
           <select value={selectedClaimId} onChange={(event) => setSelectedClaimId(event.target.value)}>
             <option value="">Use latest pending claim</option>
-            {pendingClaims.map((claim) => <option key={claim._id} value={claim._id}>{claim.tier}-match · {currency(claim.prizeAmount ?? 0)}</option>)}
+            {pendingClaims.map((claim) => <option key={claim._id} value={claim._id}>{claim.tier}-match � {currency(claim.prizeAmount ?? 0)}</option>)}
           </select>
         </label>
         <label className="grid gap-2 text-sm muted-copy">
@@ -28,7 +28,7 @@ export function ProofParticipationSection({ proofForm, onSubmitProof, pendingCla
         </label>
         <label className="grid gap-2 text-sm muted-copy">
           Backup proof URL
-          <input {...proofForm.register("proofUrl")} type="url" placeholder="Use this only if Cloudinary is not configured" />
+          <input {...proofForm.register("proofUrl")} type="url" placeholder="Demo mode only. Production requires Cloudinary upload." />
         </label>
         <label className="grid gap-2 text-sm muted-copy">
           Notes

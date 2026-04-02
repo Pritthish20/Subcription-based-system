@@ -4,7 +4,7 @@ import { AppShell } from "./components/ui/AppShell";
 import { ErrorState } from "./components/ui/ErrorState";
 import { LoadingState } from "./components/ui/LoadingState";
 import { ProtectedRoute } from "./components/ui/ProtectedRoute";
-import { demoCharities, demoPlans, request, restoreSession, storage } from "./lib";
+import { request } from "./lib";
 import { useCachedRequest } from "./lib/hooks/useCachedRequest";
 import type { Charity, Plan, SessionUser } from "./lib/types/app";
 
@@ -20,21 +20,13 @@ const AdminPage = lazy(() => import("./pages/admin").then((module) => ({ default
 export default function App() {
   const [session, setSession] = useState<SessionUser | null>(null);
   const [sessionResolved, setSessionResolved] = useState(false);
-  const { data: charities, isLoading: charitiesLoading, error: charitiesError, refresh: refreshCharities } = useCachedRequest<Charity[]>({ cacheKey: "charities:home", path: "/charities", fallback: demoCharities, useAuth: false });
-  const { data: plans, isLoading: plansLoading, error: plansError, refresh: refreshPlans } = useCachedRequest<Plan[]>({ cacheKey: "plans", path: "/billing/plans", fallback: demoPlans, useAuth: false });
+  const { data: charities, isLoading: charitiesLoading, error: charitiesError, refresh: refreshCharities } = useCachedRequest<Charity[]>({ cacheKey: "charities:home", path: "/charities", fallback: [], useAuth: false });
+  const { data: plans, isLoading: plansLoading, error: plansError, refresh: refreshPlans } = useCachedRequest<Plan[]>({ cacheKey: "plans", path: "/billing/plans", fallback: [], useAuth: false });
 
   useEffect(() => {
     async function hydrateSession() {
       try {
-        if (storage.token) {
-          setSession(await request<SessionUser>("/me"));
-          return;
-        }
-
-        if (storage.refreshToken) {
-          await restoreSession();
-          setSession(await request<SessionUser>("/me"));
-        }
+        setSession(await request<SessionUser>("/me"));
       } catch {
         setSession(null);
       } finally {
@@ -63,5 +55,3 @@ export default function App() {
     </AppShell>
   );
 }
-
-

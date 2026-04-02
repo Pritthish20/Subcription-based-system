@@ -21,7 +21,6 @@ import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
 import {
   clearClientCache,
-  demoPlans,
   loadRazorpayCheckout,
   request,
   type RazorpayDonationCheckout,
@@ -36,15 +35,25 @@ import type { DashboardSummary } from "./types";
 type SubscriptionCheckoutResponse = {
   checkoutUrl?: string;
   message?: string;
-  mode?: "razorpay" | "mock";
+  mode?: "razorpay";
   checkout?: RazorpaySubscriptionCheckout;
 };
 
 type DonationCheckoutResponse = {
   checkoutUrl?: string;
   message?: string;
-  mode?: "razorpay" | "mock";
+  mode?: "razorpay";
   checkout?: RazorpayDonationCheckout;
+};
+
+const emptyDashboardSummary: DashboardSummary = {
+  user: null,
+  subscription: null,
+  scores: [],
+  claims: [],
+  drawsEntered: 0,
+  winningsTotal: 0,
+  upcomingDraw: null
 };
 
 export function DashboardPage({ charities }: { charities: Charity[] }) {
@@ -55,17 +64,17 @@ export function DashboardPage({ charities }: { charities: Charity[] }) {
   const { data: summary, isLoading, error, refresh } = useCachedRequest<DashboardSummary>({
     cacheKey: "dashboard:subscriber",
     path: "/dashboard/subscriber",
-    fallback: { user: null, subscription: null, scores: [], claims: [], drawsEntered: 0, winningsTotal: 0 }, useAuth: true
+    fallback: emptyDashboardSummary, useAuth: true
   });
 
   const { data: plans, isLoading: plansLoading, error: plansError, refresh: refreshPlans } = useCachedRequest<Plan[]>({
     cacheKey: "billing:plans",
     path: "/billing/plans",
-    fallback: demoPlans, useAuth: false
+    fallback: [], useAuth: false
   });
 
   const scoreForm = useForm<ScoreInput>({ resolver: zodResolver(scoreSchema), defaultValues: { score: 32, playedAt: new Date().toISOString(), notes: "" } });
-  const checkoutForm = useForm<CheckoutInput>({ resolver: zodResolver(checkoutSchema), defaultValues: { planId: demoPlans[0]._id, successUrl: `${window.location.origin}/dashboard`, cancelUrl: `${window.location.origin}/dashboard` } });
+  const checkoutForm = useForm<CheckoutInput>({ resolver: zodResolver(checkoutSchema), defaultValues: { planId: "", successUrl: `${window.location.origin}/dashboard`, cancelUrl: `${window.location.origin}/dashboard` } });
   const profileForm = useForm<UpdateProfileInput>({ resolver: zodResolver(updateProfileSchema), defaultValues: { fullName: "", charityPercentage: 10, selectedCharityId: "" } });
   const donationForm = useForm<OneTimeDonationInput>({ resolver: zodResolver(oneTimeDonationSchema), defaultValues: { charityId: "", amount: 1000, message: "", successUrl: `${window.location.origin}/dashboard`, cancelUrl: `${window.location.origin}/dashboard` } });
   const cancelForm = useForm<CancelSubscriptionInput>({ resolver: zodResolver(cancelSubscriptionSchema), defaultValues: { reason: "" } });
@@ -80,6 +89,7 @@ export function DashboardPage({ charities }: { charities: Charity[] }) {
   const subscriptionEndsAt = summary?.subscription?.currentPeriodEnd ? new Date(summary.subscription.currentPeriodEnd) : null;
   const hasActiveSubscription = subscriptionStatus === "active" && (!subscriptionEndsAt || subscriptionEndsAt.getTime() > Date.now());
   const pendingClaims = useMemo(() => summary?.claims.filter((claim) => claim.reviewStatus === "pending") ?? [], [summary]);
+  const checkoutDisabled = plansLoading || !plans.length;
 
   useEffect(() => {
     if (!pendingClaims.length) {
@@ -107,7 +117,7 @@ export function DashboardPage({ charities }: { charities: Charity[] }) {
   }, [summary?.user?._id, summary?.user?.fullName, summary?.user?.charityPercentage, summary?.user?.selectedCharityId, profileForm, donationForm]);
 
   useEffect(() => {
-    const firstPlan = plans[0]?._id ?? demoPlans[0]._id;
+    const firstPlan = plans[0]?._id ?? "";
     checkoutForm.setValue("planId", checkoutForm.getValues("planId") || firstPlan);
   }, [plans, checkoutForm]);
 
@@ -218,14 +228,19 @@ export function DashboardPage({ charities }: { charities: Charity[] }) {
   });
 
   const startCheckout = checkoutForm.handleSubmit(async (values) => {
+    if (!values.planId) {
+      toast.error("No live subscription plans are available right now");
+      return;
+    }
+
     try {
       const response = await request<SubscriptionCheckoutResponse>("/billing/checkout", { method: "POST", body: JSON.stringify(values) });
       if (response.mode === "razorpay" && response.checkout) {
         await launchSubscriptionCheckout(values, response.checkout);
         return;
       }
-      toast.success(response.message ?? "Checkout session prepared");
-      await refreshDashboard();
+
+      throw new Error(response.message ?? "Checkout could not be started");
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -248,9 +263,8 @@ export function DashboardPage({ charities }: { charities: Charity[] }) {
         await launchDonationCheckout(response.checkout);
         return;
       }
-      toast.success(response.message ?? "Donation recorded");
-      donationForm.reset({ charityId: values.charityId, amount: 1000, message: "", successUrl: `${window.location.origin}/dashboard`, cancelUrl: `${window.location.origin}/dashboard` });
-      await refreshDashboard();
+
+      throw new Error(response.message ?? "Donation checkout could not be started");
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -300,7 +314,7 @@ export function DashboardPage({ charities }: { charities: Charity[] }) {
 
       <section className="grid gap-5 xl:grid-cols-[1.02fr_0.98fr]">
         <ProfileSettingsCard charities={charities} form={profileForm} onSubmit={saveProfile} />
-        <SubscriptionControlCard plans={plans.length ? plans : demoPlans} plansLoading={plansLoading} plansError={plansError} checkoutForm={checkoutForm} cancelForm={cancelForm} onCheckout={startCheckout} onCancel={cancelSubscription} summary={summary} subscriptionStatus={subscriptionStatus} />
+        <SubscriptionControlCard plans={plans} plansLoading={plansLoading} plansError={plansError} checkoutForm={checkoutForm} cancelForm={cancelForm} onCheckout={startCheckout} onCancel={cancelSubscription} summary={summary} subscriptionStatus={subscriptionStatus} checkoutDisabled={checkoutDisabled} />
       </section>
 
       <ScoreSection form={scoreForm} onSubmit={submitScore} hasActiveSubscription={hasActiveSubscription} scores={summary?.scores ?? []} />
@@ -309,5 +323,3 @@ export function DashboardPage({ charities }: { charities: Charity[] }) {
     </main>
   );
 }
-
-

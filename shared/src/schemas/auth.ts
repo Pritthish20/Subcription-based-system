@@ -1,4 +1,4 @@
-﻿import { z } from "zod";
+import { z } from "zod";
 import { CHARITY_MIN_PERCENTAGE } from "../constants/domain";
 
 export const loginSchema = z.object({
@@ -21,8 +21,8 @@ export const updateProfileSchema = z.object({
 });
 
 export const refreshTokenSchema = z.object({
-  refreshToken: z.string().min(16)
-});
+  refreshToken: z.string().min(16).optional()
+}).default({});
 
 export const logoutSchema = refreshTokenSchema;
 

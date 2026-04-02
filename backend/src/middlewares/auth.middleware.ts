@@ -1,15 +1,17 @@
 import type { Request, RequestHandler } from "express";
 import type { UserRole } from "../../../shared/src/index";
-import { verifyAccessToken } from "../config";
+import { ACCESS_TOKEN_COOKIE, readCookie, verifyAccessToken } from "../config";
 import { ApiError } from "../lib/http";
 import { User } from "../models";
 
 export const authenticate: RequestHandler = async (req, _res, next) => {
   try {
     const header = req.headers.authorization;
-    if (!header?.startsWith("Bearer ")) throw new ApiError(401, "Authentication required");
+    const bearerToken = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
+    const token = bearerToken ?? readCookie(req, ACCESS_TOKEN_COOKIE);
+    if (!token) throw new ApiError(401, "Authentication required");
 
-    const payload = verifyAccessToken(header.slice(7));
+    const payload = verifyAccessToken(token);
     const user = await User.findById(payload.userId);
     if (!user) throw new ApiError(401, "User not found");
 

@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, BadgeIndianRupee, HeartHandshake, ShieldCheck } from "lucide-react";
@@ -16,7 +16,7 @@ import {
 } from "@shared/index";
 import { Button, GhostButton } from "../../components/Button";
 import { Panel } from "../../components/Panel";
-import { currency, request, storage } from "../../lib";
+import { currency, request } from "../../lib";
 import type { Charity, Plan, SessionUser } from "../../lib/types/app";
 
 function FieldError({ message }: { message?: string }) {
@@ -30,7 +30,6 @@ export function AuthPage({ charities, plans, setSession }: { charities: Charity[
   const location = useLocation();
   const [mode, setMode] = useState<"register" | "login" | "forgot" | "reset">("register");
   const [pending, setPending] = useState<"login" | "register" | "forgot" | "reset" | null>(null);
-  const [debugResetToken, setDebugResetToken] = useState("");
 
   const redirectTo = useMemo(() => {
     const state = location.state as { from?: string } | null;
@@ -45,10 +44,7 @@ export function AuthPage({ charities, plans, setSession }: { charities: Charity[
   const handleLogin = loginForm.handleSubmit(async (values) => {
     try {
       setPending("login");
-      const response = await request<{ user: SessionUser; accessToken: string; refreshToken: string }>("/auth/login", { method: "POST", body: JSON.stringify(values) });
-      storage.token = response.accessToken;
-      storage.refreshToken = response.refreshToken;
-      storage.role = response.user.role ?? "subscriber";
+      const response = await request<{ user: SessionUser }>("/auth/login", { method: "POST", body: JSON.stringify(values), useAuth: false });
       setSession(response.user);
       toast.success("Logged in successfully");
       navigate(response.user.role === "admin" && redirectTo === "/admin" ? "/admin" : "/dashboard", { replace: true });
@@ -62,10 +58,7 @@ export function AuthPage({ charities, plans, setSession }: { charities: Charity[
   const handleRegister = registerForm.handleSubmit(async (values) => {
     try {
       setPending("register");
-      const response = await request<{ user: SessionUser; accessToken: string; refreshToken: string }>("/auth/register", { method: "POST", body: JSON.stringify(values) });
-      storage.token = response.accessToken;
-      storage.refreshToken = response.refreshToken;
-      storage.role = response.user.role ?? "subscriber";
+      const response = await request<{ user: SessionUser }>("/auth/register", { method: "POST", body: JSON.stringify(values), useAuth: false });
       setSession(response.user);
       toast.success("Account created");
       navigate("/dashboard", { replace: true });
@@ -79,11 +72,7 @@ export function AuthPage({ charities, plans, setSession }: { charities: Charity[
   const handleForgotPassword = forgotForm.handleSubmit(async (values) => {
     try {
       setPending("forgot");
-      const response = await request<{ message: string; debugResetToken?: string }>("/auth/forgot-password", { method: "POST", body: JSON.stringify(values) });
-      if (response.debugResetToken) {
-        setDebugResetToken(response.debugResetToken);
-        resetForm.setValue("token", response.debugResetToken);
-      }
+      const response = await request<{ message: string }>("/auth/forgot-password", { method: "POST", body: JSON.stringify(values), useAuth: false });
       toast.success(response.message);
       setMode("reset");
     } catch (error) {
@@ -96,12 +85,8 @@ export function AuthPage({ charities, plans, setSession }: { charities: Charity[
   const handleResetPassword = resetForm.handleSubmit(async (values) => {
     try {
       setPending("reset");
-      const response = await request<{ user: SessionUser; accessToken: string; refreshToken: string }>("/auth/reset-password", { method: "POST", body: JSON.stringify(values) });
-      storage.token = response.accessToken;
-      storage.refreshToken = response.refreshToken;
-      storage.role = response.user.role ?? "subscriber";
+      const response = await request<{ user: SessionUser }>("/auth/reset-password", { method: "POST", body: JSON.stringify(values), useAuth: false });
       setSession(response.user);
-      setDebugResetToken("");
       toast.success("Password reset successful");
       navigate("/dashboard", { replace: true });
     } catch (error) {
@@ -149,12 +134,6 @@ export function AuthPage({ charities, plans, setSession }: { charities: Charity[
               <div className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-brand-night">{activePlan ? currency(activePlan.amountInr) : "Configure plan"}</div>
             </div>
           </div>
-
-          {debugResetToken ? (
-            <div className="rounded-[1.6rem] border border-amber-300/20 bg-amber-300/10 p-4 text-sm text-white/90">
-              Demo reset token: <span className="font-mono">{debugResetToken}</span>
-            </div>
-          ) : null}
         </div>
       </Panel>
 
@@ -241,8 +220,8 @@ export function AuthPage({ charities, plans, setSession }: { charities: Charity[
           <Panel className="space-y-5">
             <div>
               <span className="eyebrow">Password recovery</span>
-              <h2 className="mt-3 text-3xl font-black tracking-tight text-brand-night">Generate a reset link or demo token.</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-500">Use this flow for the mocked email setup now, or the live email provider later.</p>
+              <h2 className="mt-3 text-3xl font-black tracking-tight text-brand-night">Request password reset instructions.</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-500">Submit your email and follow the reset instructions delivered by the configured mail provider.</p>
             </div>
             <form className="space-y-4" onSubmit={handleForgotPassword}>
               <label className="grid gap-2 text-sm text-slate-600">
@@ -250,7 +229,7 @@ export function AuthPage({ charities, plans, setSession }: { charities: Charity[
                 <input {...forgotForm.register("email")} type="email" />
                 <FieldError message={forgotForm.formState.errors.email?.message} />
               </label>
-              <Button type="submit" size="lg" disabled={pending === "forgot"}>{pending === "forgot" ? "Generating..." : "Generate reset token"}</Button>
+              <Button type="submit" size="lg" disabled={pending === "forgot"}>{pending === "forgot" ? "Submitting..." : "Send reset instructions"}</Button>
             </form>
           </Panel>
         ) : null}
@@ -260,7 +239,7 @@ export function AuthPage({ charities, plans, setSession }: { charities: Charity[
             <div>
               <span className="eyebrow">Reset access</span>
               <h2 className="mt-3 text-3xl font-black tracking-tight text-brand-night">Set a fresh password and return to the dashboard.</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-500">Paste the reset token you received, then confirm the new password.</p>
+              <p className="mt-2 text-sm leading-6 text-slate-500">Enter the reset token from your email, then confirm the new password.</p>
             </div>
             <form className="space-y-4" onSubmit={handleResetPassword}>
               <label className="grid gap-2 text-sm text-slate-600">

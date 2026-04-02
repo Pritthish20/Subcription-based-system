@@ -1,4 +1,4 @@
-﻿import { DRAW_NUMBER_COUNT, MATCH_TIER_SHARES, SCORE_LIMIT, type DrawMode, type DrawPublishInput } from "../../../shared/src/index";
+import { DRAW_NUMBER_COUNT, MATCH_TIER_SHARES, SCORE_LIMIT, type DrawMode, type DrawPublishInput } from "../../../shared/src/index";
 import { runService } from "../lib/http";
 import { DrawCycle, DrawSimulation, PrizeAllocation, ScoreEntry, Subscription, User, WinnerClaim } from "../models";
 import { getMonthWindow, getRandomNumbers, countMatches, uniqueSortedNumbers, weightedNumbers } from "../utils";
@@ -24,7 +24,7 @@ export async function publishDraw(payload: DrawPublishInput, adminId?: string) {
     const { end } = getMonthWindow(payload.month);
     const [activeSubscriptions, previousDraw] = await Promise.all([
       Subscription.find({ status: "active" }).populate("planId"),
-      DrawCycle.findOne({ status: "published" }).sort({ publishedAt: -1 })
+      DrawCycle.findOne({ status: "published", month: { $lt: payload.month } }).sort({ month: -1, publishedAt: -1 })
     ]);
 
     const userIds = activeSubscriptions.map((subscription) => subscription.userId);
@@ -75,3 +75,4 @@ export async function publishDraw(payload: DrawPublishInput, adminId?: string) {
     return { draw, splitAmounts, winnerCounts: { five: tierUsers.five.length, four: tierUsers.four.length, three: tierUsers.three.length } };
   });
 }
+

@@ -1,4 +1,6 @@
-﻿import { asyncHandler, ok } from "../lib/http";
+import type { Request } from "express";
+import { REFRESH_TOKEN_COOKIE, clearSessionCookies, readCookie, setSessionCookies } from "../config";
+import { ApiError, asyncHandler, ok } from "../lib/http";
 import {
   loginUser,
   logoutUserSession,
@@ -16,20 +18,47 @@ import type {
   ResetPasswordInput
 } from "../validators/auth.validator";
 
+function resolveRefreshToken(req: Request, payload: Partial<RefreshTokenInput & LogoutInput>) {
+  return payload.refreshToken ?? readCookie(req, REFRESH_TOKEN_COOKIE);
+}
+
 export const registerController = asyncHandler("auth.registerController", async (req, res) => {
-  ok(res, await registerUser(req.body as RegisterInput), 201);
+  const session = await registerUser(req.body as RegisterInput);
+  setSessionCookies(res, session.accessToken, session.refreshToken);
+  ok(res, { user: session.user }, 201);
 });
 
 export const loginController = asyncHandler("auth.loginController", async (req, res) => {
-  ok(res, await loginUser(req.body as LoginInput));
+  const session = await loginUser(req.body as LoginInput);
+  setSessionCookies(res, session.accessToken, session.refreshToken);
+  ok(res, { user: session.user });
 });
 
 export const refreshController = asyncHandler("auth.refreshController", async (req, res) => {
-  ok(res, await refreshUserSession(req.body as RefreshTokenInput));
+  const refreshToken = resolveRefreshToken(req, req.body as Partial<RefreshTokenInput>);
+  if (!refreshToken) {
+    clearSessionCookies(res);
+    throw new ApiError(401, "Refresh token required", { code: "AUTH_REFRESH_REQUIRED" });
+  }
+
+  try {
+    const session = await refreshUserSession({ refreshToken });
+    setSessionCookies(res, session.accessToken, session.refreshToken);
+    ok(res, { user: session.user });
+  } catch (error) {
+    clearSessionCookies(res);
+    throw error;
+  }
 });
 
 export const logoutController = asyncHandler("auth.logoutController", async (req, res) => {
-  ok(res, await logoutUserSession(req.body as LogoutInput));
+  const refreshToken = resolveRefreshToken(req, req.body as Partial<LogoutInput>);
+  if (refreshToken) {
+    await logoutUserSession({ refreshToken });
+  }
+
+  clearSessionCookies(res);
+  ok(res, { loggedOut: true });
 });
 
 export const forgotPasswordController = asyncHandler("auth.forgotPasswordController", async (req, res) => {
@@ -37,5 +66,7 @@ export const forgotPasswordController = asyncHandler("auth.forgotPasswordControl
 });
 
 export const resetPasswordController = asyncHandler("auth.resetPasswordController", async (req, res) => {
-  ok(res, await resetPassword(req.body as ResetPasswordInput));
+  const session = await resetPassword(req.body as ResetPasswordInput);
+  setSessionCookies(res, session.accessToken, session.refreshToken);
+  ok(res, { user: session.user });
 });

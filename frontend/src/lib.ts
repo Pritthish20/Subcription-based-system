@@ -2,12 +2,14 @@ import axios, { AxiosError, AxiosHeaders, type AxiosRequestConfig, type Internal
 import type { ApiResponse } from "@shared/index";
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api").replace(/\/$/, "");
-let refreshPromise: Promise<string> | null = null;
+let refreshPromise: Promise<void> | null = null;
 type RazorpayConstructor = NonNullable<Window["Razorpay"]>;
 let razorpayScriptPromise: Promise<RazorpayConstructor> | null = null;
 
 const allowedProofMimeTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/heic", "image/heif"]);
 const maxProofFileSizeBytes = 5 * 1024 * 1024;
+
+const legacySessionKeys = ["golf-charity-token", "golf-charity-refresh-token", "golf-charity-role"] as const;
 
 declare global {
   interface Window {
@@ -46,39 +48,10 @@ export type RazorpayDonationCheckout = {
   cancelUrl: string;
 };
 
-export const storage = {
-  get token() {
-    return localStorage.getItem("golf-charity-token") ?? "";
-  },
-  set token(value: string) {
-    if (value) {
-      localStorage.setItem("golf-charity-token", value);
-    } else {
-      localStorage.removeItem("golf-charity-token");
-    }
-  },
-  get refreshToken() {
-    return localStorage.getItem("golf-charity-refresh-token") ?? "";
-  },
-  set refreshToken(value: string) {
-    if (value) {
-      localStorage.setItem("golf-charity-refresh-token", value);
-    } else {
-      localStorage.removeItem("golf-charity-refresh-token");
-    }
-  },
-  get role() {
-    return localStorage.getItem("golf-charity-role") ?? "subscriber";
-  },
-  set role(value: string) {
-    localStorage.setItem("golf-charity-role", value);
-  }
-};
-
 export function clearSessionStorage() {
-  storage.token = "";
-  storage.refreshToken = "";
-  storage.role = "subscriber";
+  for (const key of legacySessionKeys) {
+    localStorage.removeItem(key);
+  }
 }
 
 type RequestOptions = {
@@ -89,8 +62,6 @@ type RequestOptions = {
 };
 
 type RefreshResponse = {
-  accessToken: string;
-  refreshToken: string;
   user: { role?: string };
 };
 
@@ -99,11 +70,13 @@ type ApiClientConfig = InternalAxiosRequestConfig & {
 };
 
 const authClient = axios.create({
-  baseURL: apiBaseUrl
+  baseURL: apiBaseUrl,
+  withCredentials: true
 });
 
 const publicClient = axios.create({
-  baseURL: apiBaseUrl
+  baseURL: apiBaseUrl,
+  withCredentials: true
 });
 
 function extractApiError(error: unknown) {
@@ -120,15 +93,10 @@ function extractApiError(error: unknown) {
 }
 
 async function refreshAccessToken() {
-  if (!storage.refreshToken) {
-    clearSessionStorage();
-    throw new Error("Session expired");
-  }
-
   if (refreshPromise) return refreshPromise;
 
   refreshPromise = publicClient
-    .post<ApiResponse<RefreshResponse>>("/auth/refresh", { refreshToken: storage.refreshToken }, {
+    .post<ApiResponse<RefreshResponse>>("/auth/refresh", {}, {
       headers: { "Content-Type": "application/json" }
     })
     .then(({ data }) => {
@@ -136,11 +104,6 @@ async function refreshAccessToken() {
         clearSessionStorage();
         throw new Error(data.error.message);
       }
-
-      storage.token = data.data.accessToken;
-      storage.refreshToken = data.data.refreshToken;
-      storage.role = data.data.user.role ?? "subscriber";
-      return data.data.accessToken;
     })
     .catch((error) => {
       clearSessionStorage();
@@ -153,17 +116,13 @@ async function refreshAccessToken() {
   return refreshPromise;
 }
 
-function withPreparedHeaders(config: InternalAxiosRequestConfig, attachAuth: boolean) {
+function withPreparedHeaders(config: InternalAxiosRequestConfig) {
   const isFormData = typeof FormData !== "undefined" && config.data instanceof FormData;
   const method = (config.method ?? "get").toUpperCase();
   const hasBody = config.data !== undefined && config.data !== null && method !== "GET" && method !== "HEAD";
   const headers = AxiosHeaders.from(config.headers ?? {});
 
-  if (attachAuth && storage.token) {
-    headers.set("Authorization", `Bearer ${storage.token}`);
-  } else {
-    headers.delete("Authorization");
-  }
+  headers.delete("Authorization");
 
   if (hasBody && !isFormData && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -173,14 +132,14 @@ function withPreparedHeaders(config: InternalAxiosRequestConfig, attachAuth: boo
   return config;
 }
 
-authClient.interceptors.request.use((config) => withPreparedHeaders(config, true));
-publicClient.interceptors.request.use((config) => withPreparedHeaders(config, false));
+authClient.interceptors.request.use((config) => withPreparedHeaders(config));
+publicClient.interceptors.request.use((config) => withPreparedHeaders(config));
 
 authClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ApiResponse<unknown>>) => {
     const original = error.config as ApiClientConfig | undefined;
-    if (!original || original._retry || error.response?.status !== 401 || !storage.refreshToken) {
+    if (!original || original._retry || error.response?.status !== 401) {
       throw error;
     }
 
@@ -193,12 +152,6 @@ authClient.interceptors.response.use(
     return authClient.request(original);
   }
 );
-
-export async function restoreSession() {
-  if (!storage.refreshToken) return null;
-  const nextToken = await refreshAccessToken();
-  return nextToken;
-}
 
 export async function request<T>(path: string, init?: RequestOptions): Promise<T> {
   try {
@@ -300,34 +253,6 @@ export async function uploadWinnerProof(file: File) {
     throw new Error(extractApiError(error));
   }
 }
-
-export const demoCharities = [
-  {
-    _id: "demo-charity-1",
-    name: "First Swing Foundation",
-    slug: "first-swing-foundation",
-    category: "Junior Access",
-    featured: true,
-    imageUrl: "https://images.unsplash.com/photo-1521412644187-c49fa049e84d?auto=format&fit=crop&w=1200&q=80",
-    description: "Funds junior golf access, coaching scholarships, and transport for underrepresented young players.",
-    events: [{ title: "Community Golf Day", startsAt: new Date().toISOString(), location: "Bengaluru" }]
-  },
-  {
-    _id: "demo-charity-2",
-    name: "Fairways For Care",
-    slug: "fairways-for-care",
-    category: "Health Outreach",
-    featured: false,
-    imageUrl: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80",
-    description: "Supports mobile health camps and golf-day fundraising for families needing long-term treatment.",
-    events: []
-  }
-];
-
-export const demoPlans = [
-  { _id: "plan-monthly", name: "Monthly Hero Pass", interval: "monthly", amountInr: 1499 },
-  { _id: "plan-yearly", name: "Yearly Hero Pass", interval: "yearly", amountInr: 14999 }
-];
 
 export function currency(value: number) {
   return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value);

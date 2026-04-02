@@ -1,4 +1,4 @@
-﻿import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   charityFindById: vi.fn(),
@@ -72,7 +72,7 @@ describe("auth service flows", () => {
     expect(save).toHaveBeenCalledOnce();
   });
 
-  it("creates a reset token and completes the password reset flow", async () => {
+  it("creates a reset token for delivery and completes the password reset flow without exposing it in the response", async () => {
     const requestSave = vi.fn();
     mocks.userFindOne.mockResolvedValueOnce({
       _id: { toString: () => "user-1" },
@@ -82,8 +82,10 @@ describe("auth service flows", () => {
 
     const resetRequest = await requestPasswordReset({ email: "player@example.com" });
 
-    expect(resetRequest.debugResetToken).toBeTruthy();
-    expect(mocks.notify).toHaveBeenCalledWith("user-1", "auth.password_reset_requested", expect.objectContaining({ resetToken: resetRequest.debugResetToken }));
+    expect(resetRequest).toEqual({ message: "If an account exists for this email, reset instructions have been generated." });
+    expect(mocks.notify).toHaveBeenCalledWith("user-1", "auth.password_reset_requested", expect.objectContaining({ resetToken: expect.any(String) }));
+    const resetToken = mocks.notify.mock.calls[0]?.[2]?.resetToken;
+    expect(resetToken).toBeTruthy();
 
     const resetSave = vi.fn();
     mocks.userFindOne.mockResolvedValueOnce({
@@ -93,11 +95,10 @@ describe("auth service flows", () => {
       save: resetSave
     });
 
-    const result = await resetPassword({ token: resetRequest.debugResetToken!, password: "NewPassword@123" });
+    const result = await resetPassword({ token: resetToken, password: "NewPassword@123" });
 
     expect(result.accessToken).toBe("access-token");
     expect(resetSave).toHaveBeenCalledTimes(2);
     expect(mocks.notify).toHaveBeenLastCalledWith("user-1", "auth.password_reset_completed", { email: "player@example.com" });
   });
 });
-

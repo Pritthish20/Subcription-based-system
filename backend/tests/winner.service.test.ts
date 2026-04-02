@@ -1,4 +1,4 @@
-﻿import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   winnerFindById: vi.fn(),
@@ -45,9 +45,17 @@ describe("winner service flows", () => {
     expect(mocks.notify).toHaveBeenCalledWith("user-1", "winner.approved", { claimId: "claim-1" });
   });
 
-  it("marks a winner as paid, records payout details, and notifies the winner", async () => {
+  it("marks an approved winner as paid, records payout details, and notifies the winner", async () => {
     const save = vi.fn();
-    mocks.winnerFindById.mockResolvedValue({ _id: "claim-1", userId: { toString: () => "user-1" }, prizeAmount: 2500, save, toObject: () => ({ payoutStatus: "pending" }) });
+    mocks.winnerFindById.mockResolvedValue({
+      _id: "claim-1",
+      userId: { toString: () => "user-1" },
+      reviewStatus: "approved",
+      payoutStatus: "pending",
+      prizeAmount: 2500,
+      save,
+      toObject: () => ({ payoutStatus: "pending", reviewStatus: "approved" })
+    });
     mocks.payoutCreate.mockResolvedValue({ _id: "payout-1" });
 
     const result = await markWinnerPaid("claim-1", { reference: "UTR123", paidAt: "2026-03-21T10:00:00.000Z" }, "admin-1");
@@ -56,5 +64,45 @@ describe("winner service flows", () => {
     expect(mocks.payoutCreate).toHaveBeenCalledWith(expect.objectContaining({ winnerClaimId: "claim-1", reference: "UTR123", markedBy: "admin-1" }));
     expect(mocks.recordAdminAction).toHaveBeenCalledWith(expect.objectContaining({ adminId: "admin-1", action: "winner_claim.paid", targetId: "claim-1" }));
     expect(mocks.notify).toHaveBeenCalledWith("user-1", "winner.paid", expect.objectContaining({ claimId: "claim-1", reference: "UTR123" }));
+  });
+
+  it("blocks payout when the claim has not been approved", async () => {
+    const save = vi.fn();
+    mocks.winnerFindById.mockResolvedValue({
+      _id: "claim-1",
+      userId: { toString: () => "user-1" },
+      reviewStatus: "pending",
+      payoutStatus: "pending",
+      prizeAmount: 2500,
+      save,
+      toObject: () => ({ payoutStatus: "pending", reviewStatus: "pending" })
+    });
+
+    await expect(markWinnerPaid("claim-1", { reference: "UTR123" }, "admin-1")).rejects.toMatchObject({
+      statusCode: 409,
+      code: "WINNER_CLAIM_NOT_APPROVED"
+    });
+    expect(save).not.toHaveBeenCalled();
+    expect(mocks.payoutCreate).not.toHaveBeenCalled();
+  });
+
+  it("blocks duplicate payout for a claim that is already paid", async () => {
+    const save = vi.fn();
+    mocks.winnerFindById.mockResolvedValue({
+      _id: "claim-1",
+      userId: { toString: () => "user-1" },
+      reviewStatus: "approved",
+      payoutStatus: "paid",
+      prizeAmount: 2500,
+      save,
+      toObject: () => ({ payoutStatus: "paid", reviewStatus: "approved" })
+    });
+
+    await expect(markWinnerPaid("claim-1", { reference: "UTR123" }, "admin-1")).rejects.toMatchObject({
+      statusCode: 409,
+      code: "WINNER_CLAIM_ALREADY_PAID"
+    });
+    expect(save).not.toHaveBeenCalled();
+    expect(mocks.payoutCreate).not.toHaveBeenCalled();
   });
 });

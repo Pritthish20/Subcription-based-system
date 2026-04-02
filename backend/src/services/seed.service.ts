@@ -1,7 +1,31 @@
 import bcrypt from "bcryptjs";
 import { getEnv } from "../config";
-import { runService } from "../lib/http";
+import { ApiError, runService } from "../lib/http";
 import { Charity, Plan, User } from "../models";
+
+function resolveSeedAdminCredentials() {
+  const env = getEnv();
+
+  if (env.APP_ENV === "demo") {
+    return {
+      fullName: "Platform Admin",
+      email: (env.SEED_ADMIN_EMAIL ?? "admin@digitalheroes.demo").toLowerCase(),
+      password: env.SEED_ADMIN_PASSWORD ?? "Admin@123456"
+    };
+  }
+
+  if (!env.SEED_ADMIN_EMAIL || !env.SEED_ADMIN_PASSWORD) {
+    throw new ApiError(400, "SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD are required for non-demo seeding", {
+      code: "SEED_ADMIN_CREDENTIALS_REQUIRED"
+    });
+  }
+
+  return {
+    fullName: "Platform Admin",
+    email: env.SEED_ADMIN_EMAIL.toLowerCase(),
+    password: env.SEED_ADMIN_PASSWORD
+  };
+}
 
 export async function ensureDefaultPlans() {
   return runService("seed.service", "ensureDefaultPlans", async () => {
@@ -57,11 +81,12 @@ export async function ensureSeedData() {
     }
 
     if (!(await User.findOne({ role: "admin" }))) {
+      const admin = resolveSeedAdminCredentials();
       const charities = await Charity.find().sort({ createdAt: 1 });
       await User.create({
-        fullName: "Platform Admin",
-        email: "admin@digitalheroes.demo",
-        passwordHash: await bcrypt.hash("Admin@123456", 12),
+        fullName: admin.fullName,
+        email: admin.email,
+        passwordHash: await bcrypt.hash(admin.password, 12),
         role: "admin",
         accountState: "active",
         selectedCharityId: charities[0]?._id,

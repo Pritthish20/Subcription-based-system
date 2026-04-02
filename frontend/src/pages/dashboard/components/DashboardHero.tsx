@@ -1,8 +1,20 @@
-ï»¿import { MetricCard } from "../../../components/MetricCard";
+import { MetricCard } from "../../../components/MetricCard";
 import { Panel } from "../../../components/Panel";
 import type { DashboardSummary } from "../types";
 
+function formatDrawMonth(month?: string) {
+  if (!month) return "TBD";
+  const date = new Date(`${month}-01T00:00:00.000Z`);
+  return Number.isNaN(date.getTime())
+    ? month
+    : date.toLocaleDateString("en-IN", { month: "short", year: "numeric", timeZone: "UTC" });
+}
+
 export function DashboardHero({ summary, subscriptionStatus, selectedCharityName, renewalLabel }: { summary: DashboardSummary | null; subscriptionStatus: string; selectedCharityName: string; renewalLabel: string }) {
+  const upcomingDrawLabel = summary?.upcomingDraw
+    ? `${formatDrawMonth(summary.upcomingDraw.month)} · ${summary.upcomingDraw.eligible ? "Eligible" : "Inactive subscription"}`
+    : "TBD";
+
   return (
     <Panel tone="strong" className="space-y-5 p-8">
       <span className="text-xs font-semibold uppercase tracking-[0.24em] text-white/60">Subscriber dashboard</span>
@@ -16,6 +28,7 @@ export function DashboardHero({ summary, subscriptionStatus, selectedCharityName
       <div className="flex flex-wrap gap-4 text-sm text-white/68">
         <span>Selected charity: {selectedCharityName}</span>
         <span>Renewal: {renewalLabel}</span>
+        <span>Upcoming draw: {upcomingDrawLabel}</span>
       </div>
     </Panel>
   );

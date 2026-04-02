@@ -5,7 +5,7 @@ export const subscriptionTransactionSchema = new Schema(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     subscriptionId: { type: Schema.Types.ObjectId, ref: "Subscription" },
     planId: { type: Schema.Types.ObjectId, ref: "Plan" },
-    source: { type: String, enum: ["razorpay", "manual"], default: "manual" },
+    source: { type: String, enum: ["razorpay"], default: "razorpay" },
     eventType: { type: String, required: true },
     amountInr: { type: Number, required: true },
     currency: { type: String, default: "INR" },
@@ -24,7 +24,7 @@ export const donationAllocationSchema = new Schema(
     amountInr: { type: Number, required: true },
     percentage: { type: Number },
     message: { type: String },
-    source: { type: String, enum: ["razorpay", "manual"], default: "manual" },
+    source: { type: String, enum: ["razorpay"], default: "razorpay" },
     providerReference: { type: String },
     status: { type: String, enum: ["pending", "completed", "failed"], default: "completed" }
   },

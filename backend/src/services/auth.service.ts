@@ -1,10 +1,8 @@
-﻿import bcrypt from "bcryptjs";
+import bcrypt from "bcryptjs";
 import { createHash, randomBytes } from "crypto";
 import type {
   ForgotPasswordInput,
   LoginInput,
-  LogoutInput,
-  RefreshTokenInput,
   RegisterInput,
   ResetPasswordInput
 } from "../../../shared/src/index";
@@ -17,6 +15,10 @@ import { notify } from "./notification.service";
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
+
+type RefreshSessionInput = { refreshToken: string };
+
+type LogoutSessionInput = { refreshToken: string };
 
 async function issueSession(user: UserDoc & { _id: { toString(): string }; save: () => Promise<unknown> }) {
   const accessToken = signAccessToken({ userId: user._id.toString(), role: user.role });
@@ -60,7 +62,7 @@ export async function loginUser(payload: LoginInput) {
   });
 }
 
-export async function refreshUserSession(payload: RefreshTokenInput) {
+export async function refreshUserSession(payload: RefreshSessionInput) {
   return runService("auth.service", "refreshUserSession", async () => {
     let tokenPayload;
     try {
@@ -78,7 +80,7 @@ export async function refreshUserSession(payload: RefreshTokenInput) {
   });
 }
 
-export async function logoutUserSession(payload: LogoutInput) {
+export async function logoutUserSession(payload: LogoutSessionInput) {
   return runService("auth.service", "logoutUserSession", async () => {
     try {
       const tokenPayload = verifyRefreshToken(payload.refreshToken);
@@ -110,8 +112,7 @@ export async function requestPasswordReset(payload: ForgotPasswordInput) {
     });
 
     return {
-      message: "Reset instructions generated. In this demo build, the reset token is returned directly.",
-      debugResetToken: token
+      message: "If an account exists for this email, reset instructions have been generated."
     };
   });
 }
@@ -137,5 +138,3 @@ export async function resetPassword(payload: ResetPasswordInput) {
     return issueSession(user);
   });
 }
-
-

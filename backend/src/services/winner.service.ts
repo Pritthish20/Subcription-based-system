@@ -1,4 +1,4 @@
-﻿import { v2 as cloudinary } from "cloudinary";
+import { v2 as cloudinary } from "cloudinary";
 import type { PayoutUpdateInput, WinnerReviewInput } from "../../../shared/src/index";
 import { ensureCloudinaryReady } from "../config";
 import { ApiError, runService } from "../lib/http";
@@ -45,6 +45,15 @@ export async function markWinnerPaid(claimId: string, payload: PayoutUpdateInput
   return runService("winner.service", "markWinnerPaid", async () => {
     const claim = await WinnerClaim.findById(claimId);
     if (!claim) throw new ApiError(404, "Winner claim not found", { code: "WINNER_CLAIM_NOT_FOUND" });
+    if (claim.reviewStatus !== "approved") {
+      throw new ApiError(409, "Winner claim must be approved before payout", {
+        code: "WINNER_CLAIM_NOT_APPROVED",
+        context: { reviewStatus: claim.reviewStatus }
+      });
+    }
+    if (claim.payoutStatus === "paid") {
+      throw new ApiError(409, "Winner claim has already been paid", { code: "WINNER_CLAIM_ALREADY_PAID" });
+    }
     const before = claim.toObject();
     claim.payoutStatus = "paid";
     claim.paidAt = payload.paidAt ? new Date(payload.paidAt) : new Date();
@@ -79,3 +88,4 @@ export async function createWinnerProofUploadSignature(userId: string) {
     };
   });
 }
+

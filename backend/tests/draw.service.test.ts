@@ -1,4 +1,4 @@
-﻿import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   subscriptionFind: vi.fn(),
@@ -82,6 +82,7 @@ describe("draw publish flow", () => {
 
     const result = await publishDraw({ month: "2026-03", mode: "random", numbers: [1, 2, 3, 4, 5] }, "admin-1");
 
+    expect(mocks.drawCycleFindOne).toHaveBeenCalledWith({ status: "published", month: { $lt: "2026-03" } });
     expect(mocks.uniqueSortedNumbers).toHaveBeenCalledWith([1, 2, 3, 4, 5]);
     expect(result.winnerCounts).toEqual({ five: 1, four: 1, three: 0 });
     expect(result.splitAmounts).toEqual({ five: 60, four: 35, three: 0 });
@@ -94,4 +95,36 @@ describe("draw publish flow", () => {
     expect(mocks.recordAdminAction).toHaveBeenCalledWith(expect.objectContaining({ adminId: "admin-1", action: "draw.published", targetId: "draw-1" }));
     expect(mocks.notifyMany).toHaveBeenCalledWith(["user-1", "user-2"], "draw.published", expect.objectContaining({ month: "2026-03" }));
   });
+
+  it("uses the previous published month for rollover when republishing an existing month", async () => {
+    const drawSave = vi.fn();
+    const activeSubscriptions = [
+      { userId: { toString: () => "user-1" }, planId: { interval: "monthly", amountInr: 100, prizePoolContributionPercentage: 50 } }
+    ];
+
+    mocks.subscriptionFind.mockReturnValue({ populate: vi.fn().mockResolvedValue(activeSubscriptions) });
+    mocks.drawCycleFindOne.mockReturnValue({ sort: vi.fn().mockResolvedValue({ month: "2026-02", rolloverAmount: 15 }) });
+    mocks.userFind.mockResolvedValue([{ _id: { toString: () => "user-1" }, selectedCharityId: { toString: () => "charity-1" } }]);
+    mocks.scoreFind.mockReturnValue({
+      sort: vi.fn().mockResolvedValue([
+        { userId: { toString: () => "user-1" }, score: 1 },
+        { userId: { toString: () => "user-1" }, score: 2 },
+        { userId: { toString: () => "user-1" }, score: 3 },
+        { userId: { toString: () => "user-1" }, score: 4 },
+        { userId: { toString: () => "user-1" }, score: 9 }
+      ])
+    });
+    mocks.drawCycleFindOneAndUpdate.mockResolvedValue({ _id: "draw-1", rolloverAmount: 99, save: drawSave });
+
+    const result = await publishDraw({ month: "2026-03", mode: "random", numbers: [1, 2, 3, 4, 5] }, "admin-1");
+
+    expect(mocks.drawCycleFindOne).toHaveBeenCalledWith({ status: "published", month: { $lt: "2026-03" } });
+    expect(result.splitAmounts).toEqual({ five: 0, four: 17.5, three: 0 });
+    expect(mocks.prizeFindOneAndUpdate).toHaveBeenCalledWith(
+      { drawCycleId: "draw-1" },
+      expect.objectContaining({ fiveMatchPool: 35, rolloverAmount: 35 }),
+      { upsert: true, new: true }
+    );
+  });
 });
+

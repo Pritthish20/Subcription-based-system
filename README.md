@@ -21,6 +21,7 @@ Frontend:
 Backend:
 - copy `backend/.env.example` to `backend/.env`
 - required: `MONGODB_URI`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`
+- `APP_ENV` supports `development`, `demo`, and `production`
 - for Atlas on networks where `mongodb+srv://` fails, use the standard non-SRV `mongodb://...` connection string from Atlas Drivers
 - replace `HOST_1`, `HOST_2`, `HOST_3`, `YOUR_REPLICA_SET`, and the password placeholder with the exact Atlas values
 - URL-encode the password if it contains special characters
@@ -32,10 +33,13 @@ Backend:
   - `RAZORPAY_WEBHOOK_SECRET` enables webhook verification for payment lifecycle events
   - `RAZORPAY_MONTHLY_PLAN_ID` and `RAZORPAY_YEARLY_PLAN_ID` are optional if you pre-create plans in Razorpay; otherwise the backend can create plan records on demand
 - email delivery:
-  - `EMAIL_PROVIDER=mock` keeps delivery local and marks notification logs as sent via the mock provider
-  - `EMAIL_PROVIDER=smtp` enables real email delivery through Nodemailer/SMTP
+  - `EMAIL_PROVIDER=mock` is intended for `development` and `demo` only
+  - `EMAIL_PROVIDER=smtp` enables real email delivery through Nodemailer/SMTP and is the expected production setting
   - `EMAIL_FROM` controls the sender identity used by the provider
   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, and `SMTP_PASS` configure the mailbox transport
+- seed admin setup:
+  - `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` are required when `APP_ENV` is `development` or `production`
+  - `APP_ENV=demo` can use the built-in demo admin defaults, or you can override them with `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD`
 
 ## Seeded Data
 The seed script populates:
@@ -43,9 +47,14 @@ The seed script populates:
 - monthly and yearly plans
 - admin account
 
-Run `npm run seed --workspace backend` after configuring backend envs.`r`n`r`nDefault admin credentials:
+Run `npm run seed --workspace backend` after configuring backend envs.
+
+Demo-mode admin defaults:
+- `APP_ENV=demo`
 - `admin@digitalheroes.demo`
 - `Admin@123456`
+
+Non-demo seed runs require explicit `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD`.
 
 ## Deployment Notes
 Frontend:
@@ -56,7 +65,8 @@ Backend:
 - `backend/vercel.json` routes all backend traffic through the single Vercel serverless entry `backend/api/index.ts`
 - `backend/render.yaml` is included for Render free-tier deployment of the Express server
 - `backend/Dockerfile` is included for hosts that prefer container deployment
-- if deploying on Vercel, deploy the `backend/` directory as a separate Vercel project and set the same backend env vars there`r`n- runtime bootstrap on Vercel now only configures providers and connects Mongo; seeding is a separate one-time script
+- if deploying on Vercel, deploy the `backend/` directory as a separate Vercel project and set the same backend env vars there
+- runtime bootstrap on Vercel now only configures providers and connects Mongo; seeding is a separate one-time script
 - the lightweight backend health probe is `GET /api/health`; it returns before Mongo bootstrap so Vercel smoke checks can pass even during cold starts
 - point backend `APP_URL` at the deployed frontend host
 - add preview domains or alternate frontend domains to `ADDITIONAL_ALLOWED_ORIGINS`
@@ -69,32 +79,27 @@ The backend now includes:
 - `x-powered-by` disabled
 - proxy-aware configuration for hosted deployments
 - JSON and form body size limits to reduce oversized payload risk
+- `httpOnly` cookie-based access and refresh token handling
+- production guardrails that block mock email delivery and direct winner-proof URLs
 
 ## Testing Notes
 Current automated coverage includes:
 - domain logic tests
 - auth session and password reset service tests
-- billing mock activation and cancellation tests
+- billing provider availability and cancellation tests
 - draw publish and winner allocation tests
 - winner review and payout tests
 - route-level integration tests for validation, auth, authorization, subscription gating, draw operations, health checks, CORS, and 404 responses
 - dashboard analytics aggregation tests
+- seed credential safety tests
+- environment-mode safety tests for email and proof submission
 
 ## Notes
-- If Razorpay is not configured, subscription and donation checkout fall back to zero-cost demo handling.
-- Winner proof submission supports signed Cloudinary uploads when credentials are configured, with a backup URL field for demo mode.
+- Subscription and one-time donation checkout require Razorpay configuration.
+- Winner proof submission supports signed Cloudinary uploads, and raw proof URLs are limited to `APP_ENV=demo`.
 - Draw publication is admin-triggered and monthly.
 - Frontend and backend can now be deployed separately.
-- Auth supports rotating refresh tokens plus forgot/reset password flows.
-- In demo mode, forgot-password returns a reset token in the API response and logs the event so the flow works before email provider setup.
+- Auth supports rotating refresh tokens plus forgot/reset password flows using secure cookies.
 - Notification logs now persist delivery metadata like recipient, provider, subject, send status, and failure reason.
 - Email templates use a branded HTML layout with CTA blocks and richer operational metadata for draw, subscription, password, and winner events.
 - Admin analytics surface subscription counts, donation splits, payout totals, notification health, and the latest published draw summary.
-
-
-
-
-
-
-
-
