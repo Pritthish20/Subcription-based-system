@@ -8,7 +8,7 @@ import { currency } from "../../../lib";
 import type { WinnerClaim } from "../types";
 import { InfoPill } from "./InfoPill";
 
-const PREVIEW_COUNT = 3;
+const PREVIEW_COUNT = 2;
 
 function WinnerClaimCard({
   claim,
