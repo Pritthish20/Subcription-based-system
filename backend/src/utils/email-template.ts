@@ -1,4 +1,4 @@
-﻿type EmailTemplateInput = {
+type EmailTemplateInput = {
   subject: string;
   eyebrow: string;
   title: string;
@@ -45,7 +45,7 @@ function renderMetaRows(metaRows: Array<{ label: string; value: string }>) {
 export function createEmailTemplate(input: EmailTemplateInput): EmailTemplate {
   const bodyLines = input.bodyLines ?? [];
   const metaRows = input.metaRows ?? [];
-  const footerNote = input.footerNote ?? "This is an automated update from Golf Charity Subscription Platform.";
+  const footerNote = input.footerNote ?? "This is an automated update from Club & Cause.";
   const safeCtaUrl = input.ctaUrl ? escapeHtml(input.ctaUrl) : undefined;
   const safeCtaLabel = input.ctaLabel ? escapeHtml(input.ctaLabel) : undefined;
 
@@ -87,3 +87,4 @@ export function createEmailTemplate(input: EmailTemplateInput): EmailTemplate {
     html
   };
 }
+

@@ -27,8 +27,8 @@ export function Navbar({ session, setSession, theme, onToggleTheme }: { session:
           <NavLink to="/" className="flex items-center gap-3">
             <span className="flex size-11 items-center justify-center rounded-2xl bg-brand-night text-white shadow-[0_18px_34px_rgba(27,42,31,0.24)]"><Sparkles size={18} /></span>
             <div>
-              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.32em] text-brand-emerald">Digital Heroes</p>
-              <p className="text-[1.05rem] font-black tracking-[-0.03em] text-brand-ink">Golf Charity Platform</p>
+              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.32em] text-brand-emerald">Club & Cause</p>
+              <p className="text-[1.05rem] font-black tracking-[-0.03em] text-brand-ink">Club & Cause Platform</p>
             </div>
           </NavLink>
           {session ? <span className="hidden rounded-full border border-brand-emerald/20 bg-brand-emerald/10 px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-brand-emerald sm:inline-flex">{session.role}</span> : null}
@@ -48,4 +48,6 @@ export function Navbar({ session, setSession, theme, onToggleTheme }: { session:
     </header>
   );
 }
+
+
 

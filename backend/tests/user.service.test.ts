@@ -48,7 +48,7 @@ describe("user.service dashboard", () => {
       populate: vi.fn().mockResolvedValue({ _id: "user-1", fullName: "Subscriber One", selectedCharityId: { _id: "charity-1", name: "Helping Hands" }, charityPercentage: 15 })
     });
     mocks.subscriptionFindOne.mockReturnValue({
-      populate: vi.fn().mockResolvedValue({ _id: "subscription-1", status: "active", currentPeriodEnd: new Date("2026-05-31T00:00:00.000Z"), planId: { name: "Monthly Hero Pass" } })
+      populate: vi.fn().mockResolvedValue({ _id: "subscription-1", status: "active", currentPeriodEnd: new Date("2026-05-31T00:00:00.000Z"), planId: { name: "Monthly Club Pass" } })
     });
     mocks.scoreFind.mockReturnValue({ sort: vi.fn().mockResolvedValue([{ _id: "score-1", score: 34 }]) });
     mocks.winnerClaimFind.mockReturnValue({ sort: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue([{ _id: "claim-1", prizeAmount: 2500 }]) }) });
@@ -74,7 +74,7 @@ describe("user.service dashboard", () => {
       populate: vi.fn().mockResolvedValue({ _id: "user-1", fullName: "Subscriber One", selectedCharityId: null, charityPercentage: 10 })
     });
     mocks.subscriptionFindOne.mockReturnValue({
-      populate: vi.fn().mockResolvedValue({ _id: "subscription-1", status: "cancelled", currentPeriodEnd: new Date("2026-04-10T00:00:00.000Z"), planId: { name: "Monthly Hero Pass" } })
+      populate: vi.fn().mockResolvedValue({ _id: "subscription-1", status: "cancelled", currentPeriodEnd: new Date("2026-04-10T00:00:00.000Z"), planId: { name: "Monthly Club Pass" } })
     });
     mocks.scoreFind.mockReturnValue({ sort: vi.fn().mockResolvedValue([]) });
     mocks.winnerClaimFind.mockReturnValue({ sort: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue([]) }) });
@@ -145,3 +145,4 @@ describe("user.service dashboard", () => {
     expect(save).toHaveBeenCalledOnce();
   });
 });
+

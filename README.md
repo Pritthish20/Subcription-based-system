@@ -1,4 +1,4 @@
-# Golf Charity Subscription Platform
+# Club & Cause
 
 Submission-focused MERN project with a traditional split structure:
 - `frontend/`: React + Vite + Tailwind + Sonner
@@ -53,7 +53,7 @@ Run `npm run seed --workspace backend` after configuring backend envs.
 
 Demo-mode admin defaults:
 - `APP_ENV=demo`
-- `admin@digitalheroes.demo`
+- `admin@clubandcause.demo`
 - `Admin@123456`
 
 Non-demo seed runs require explicit `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD`.
@@ -120,6 +120,8 @@ Current automated coverage includes:
 - Notification logs now persist delivery metadata like recipient, provider, subject, send status, and failure reason.
 - Email templates use a branded HTML layout with CTA blocks and richer operational metadata for draw, subscription, password, and winner events.
 - Admin analytics surface subscription counts, donation splits, payout totals, notification health, and the latest published draw summary.
+
+
 
 
 

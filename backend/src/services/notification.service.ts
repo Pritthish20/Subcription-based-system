@@ -1,4 +1,4 @@
-ï»¿import { getEnv, sendEmail } from "../config";
+import { getEnv, sendEmail } from "../config";
 import { runService } from "../lib/http";
 import { NotificationLog, User } from "../models";
 import { createEmailTemplate, type EmailTemplate } from "../utils/email-template";
@@ -21,7 +21,7 @@ function templateFor(event: string, payload: any, appUrl: string, recipientName?
   switch (event) {
     case "auth.registered":
       return createEmailTemplate({
-        subject: "Welcome to the Golf Charity Platform",
+        subject: "Welcome to Club & Cause",
         eyebrow: "Account ready",
         title: "Your account is live",
         intro: `${greeting} your account is ready and your dashboard is waiting.`,
@@ -66,7 +66,7 @@ function templateFor(event: string, payload: any, appUrl: string, recipientName?
       return createEmailTemplate({
         subject: "Subscription activated",
         eyebrow: "Subscription active",
-        title: "You are live in this monthâ€™s draw cycle",
+        title: "You are live in this month’s draw cycle",
         intro: `${greeting} your subscription is now active.`,
         bodyLines: [
           "You can enter your latest five scores, review your charity percentage, and track upcoming draw participation from the dashboard.",
@@ -84,7 +84,7 @@ function templateFor(event: string, payload: any, appUrl: string, recipientName?
         intro: `${greeting} your independent donation was recorded successfully.`,
         bodyLines: [
           "Thank you for supporting impact beyond your gameplay participation.",
-          "Your contribution is now reflected in the platformâ€™s charity reporting ledger."
+          "Your contribution is now reflected in the platform’s charity reporting ledger."
         ],
         metaRows: [
           { label: "Amount", value: payload?.amountInr ? `INR ${payload.amountInr}` : "Recorded" },
@@ -220,3 +220,4 @@ export async function notify(userId: string | undefined, event: string, payload:
 export async function notifyMany(userIds: string[], event: string, payload: unknown) {
   return Promise.allSettled(userIds.map((userId) => notify(userId, event, payload)));
 }
+

@@ -15,7 +15,7 @@ import { Charity, DonationAllocation, Plan, Subscription, SubscriptionTransactio
 import { notify } from "./notification.service";
 
 const CHECKOUT_THEME_COLOR = "#1D7A63";
-const PLATFORM_NAME = "Digital Heroes Golf Charity";
+const PLATFORM_NAME = "Club & Cause";
 
 type ProviderSource = "razorpay";
 type RazorpayEventPayload = {
@@ -830,4 +830,5 @@ export async function handleWebhook(body: unknown, signatureHeader?: string | st
     }
   });
 }
+
 

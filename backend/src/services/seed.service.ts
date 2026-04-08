@@ -9,7 +9,7 @@ function resolveSeedAdminCredentials() {
   if (env.APP_ENV === "demo") {
     return {
       fullName: "Platform Admin",
-      email: (env.SEED_ADMIN_EMAIL ?? "admin@digitalheroes.demo").toLowerCase(),
+      email: (env.SEED_ADMIN_EMAIL ?? "admin@clubandcause.demo").toLowerCase(),
       password: env.SEED_ADMIN_PASSWORD ?? "Admin@123456"
     };
   }
@@ -34,7 +34,7 @@ export async function ensureDefaultPlans() {
 
     await Plan.insertMany([
       {
-        name: "Monthly Hero Pass",
+        name: "Monthly Club Pass",
         interval: "monthly",
         amountInr: 1499,
         charityDefaultPercentage: 10,
@@ -43,7 +43,7 @@ export async function ensureDefaultPlans() {
         providerPlanId: env.RAZORPAY_MONTHLY_PLAN_ID
       },
       {
-        name: "Yearly Hero Pass",
+        name: "Yearly Club Pass",
         interval: "yearly",
         amountInr: 14999,
         charityDefaultPercentage: 10,
@@ -95,3 +95,6 @@ export async function ensureSeedData() {
     }
   });
 }
+
+
+

@@ -93,7 +93,7 @@ describe("seed service", () => {
 
     expect(mocks.bcryptHash).toHaveBeenCalledWith("Admin@123456", 12);
     expect(mocks.userCreate).toHaveBeenCalledWith(expect.objectContaining({
-      email: "admin@digitalheroes.demo",
+      email: "admin@clubandcause.demo",
       role: "admin",
       selectedCharityId: "charity-1"
     }));
@@ -126,3 +126,4 @@ describe("seed service", () => {
     }));
   });
 });
+
