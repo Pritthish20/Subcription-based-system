@@ -9,6 +9,7 @@ let razorpayScriptPromise: Promise<RazorpayConstructor> | null = null;
 const allowedProofMimeTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/heic", "image/heif"]);
 const maxProofFileSizeBytes = 5 * 1024 * 1024;
 
+// These keys are only kept so older browser sessions can be cleaned up after the cookie-only auth migration.
 const accessTokenStorageKey = "golf-charity-access-token";
 const refreshTokenStorageKey = "golf-charity-refresh-token";
 const legacySessionKeys = ["golf-charity-token", "golf-charity-refresh-token", "golf-charity-role"] as const;
@@ -72,32 +73,7 @@ function safeStorage() {
   return window.localStorage;
 }
 
-export function getStoredAccessToken() {
-  return safeStorage()?.getItem(accessTokenStorageKey) ?? null;
-}
-
-export function getStoredRefreshToken() {
-  return safeStorage()?.getItem(refreshTokenStorageKey) ?? null;
-}
-
-export function setTokenSession(tokens: { accessToken?: string | null; refreshToken?: string | null }) {
-  const storage = safeStorage();
-  if (!storage) return;
-
-  if (tokens.accessToken) {
-    storage.setItem(accessTokenStorageKey, tokens.accessToken);
-  } else {
-    storage.removeItem(accessTokenStorageKey);
-  }
-
-  if (tokens.refreshToken) {
-    storage.setItem(refreshTokenStorageKey, tokens.refreshToken);
-  } else {
-    storage.removeItem(refreshTokenStorageKey);
-  }
-}
-
-export function clearSessionStorage() {
+export function clearLegacySessionStorage() {
   const storage = safeStorage();
   if (storage) {
     storage.removeItem(accessTokenStorageKey);
@@ -114,12 +90,6 @@ type RequestOptions = {
   body?: unknown;
   headers?: Record<string, string>;
   useAuth?: boolean;
-};
-
-type RefreshResponse = {
-  user: { role?: string };
-  accessToken?: string;
-  refreshToken?: string;
 };
 
 type ApiClientConfig = InternalAxiosRequestConfig & {
@@ -157,22 +127,12 @@ async function refreshAccessToken() {
   if (refreshPromise) return refreshPromise;
 
   refreshPromise = publicClient
-    .post<ApiResponse<RefreshResponse>>("/auth/refresh", { refreshToken: getStoredRefreshToken() ?? undefined }, {
+    .post<ApiResponse<unknown>>("/auth/refresh", undefined, {
       headers: { "Content-Type": "application/json" }
     })
-    .then(({ data }) => {
-      if (!data.success) {
-        clearSessionStorage();
-        throw new Error(data.error.message);
-      }
-
-      setTokenSession({
-        accessToken: data.data.accessToken ?? null,
-        refreshToken: data.data.refreshToken ?? getStoredRefreshToken()
-      });
-    })
+    .then(() => undefined)
     .catch((error) => {
-      clearSessionStorage();
+      clearLegacySessionStorage();
       throw new Error(extractApiError(error));
     })
     .finally(() => {
@@ -187,13 +147,6 @@ function withPreparedHeaders(config: InternalAxiosRequestConfig) {
   const method = (config.method ?? "get").toUpperCase();
   const hasBody = config.data !== undefined && config.data !== null && method !== "GET" && method !== "HEAD";
   const headers = AxiosHeaders.from(config.headers ?? {});
-  const accessToken = getStoredAccessToken();
-
-  if (accessToken) {
-    headers.set("Authorization", `Bearer ${accessToken}`);
-  } else {
-    headers.delete("Authorization");
-  }
 
   if (hasBody && !isFormData && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");

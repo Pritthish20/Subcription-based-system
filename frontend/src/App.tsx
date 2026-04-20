@@ -4,7 +4,7 @@ import { AppShell } from "./components/ui/AppShell";
 import { ErrorState } from "./components/ui/ErrorState";
 import { LoadingState } from "./components/ui/LoadingState";
 import { ProtectedRoute } from "./components/ui/ProtectedRoute";
-import { request } from "./lib";
+import { clearLegacySessionStorage, request } from "./lib";
 import { useCachedRequest } from "./lib/hooks/useCachedRequest";
 import type { Charity, Plan, SessionUser } from "./lib/types/app";
 
@@ -24,6 +24,8 @@ export default function App() {
   const { data: plans, isLoading: plansLoading, error: plansError, refresh: refreshPlans } = useCachedRequest<Plan[]>({ cacheKey: "plans", path: "/billing/plans", fallback: [], useAuth: false });
 
   useEffect(() => {
+    clearLegacySessionStorage();
+
     async function hydrateSession() {
       try {
         setSession(await request<SessionUser>("/me"));

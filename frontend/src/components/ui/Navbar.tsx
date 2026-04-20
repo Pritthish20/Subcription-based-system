@@ -1,7 +1,7 @@
 import { LogOut, Shield, Sparkles } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import type { ThemeMode } from "../../lib/hooks/useThemeMode";
-import { clearSessionStorage, getStoredRefreshToken, request } from "../../lib";
+import { clearLegacySessionStorage, request } from "../../lib";
 import type { SessionUser } from "../../lib/types/app";
 import { GhostButton } from "../Button";
 import { ThemeToggle } from "./ThemeToggle";
@@ -11,11 +11,11 @@ const navClass = ({ isActive }: { isActive: boolean }) => `rounded-full border p
 export function Navbar({ session, setSession, theme, onToggleTheme }: { session: SessionUser | null; setSession: (value: SessionUser | null) => void; theme: ThemeMode; onToggleTheme: () => void }) {
   async function handleLogout() {
     try {
-      await request("/auth/logout", { method: "POST", body: JSON.stringify({ refreshToken: getStoredRefreshToken() ?? undefined }), useAuth: false });
+      await request("/auth/logout", { method: "POST", useAuth: false });
     } catch {
       // Clear local session even if the backend logout request fails.
     } finally {
-      clearSessionStorage();
+      clearLegacySessionStorage();
       setSession(null);
     }
   }

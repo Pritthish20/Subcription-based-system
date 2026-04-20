@@ -238,6 +238,8 @@ describe("API route integration", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.data.user.email).toBe("subscriber@example.com");
+    expect(response.body.data.accessToken).toBeUndefined();
+    expect(response.body.data.refreshToken).toBeUndefined();
     expect(response.headers["set-cookie"]).toEqual(expect.arrayContaining([
       expect.stringContaining("golf_access_token=access-token"),
       expect.stringContaining("golf_refresh_token=refresh-token")

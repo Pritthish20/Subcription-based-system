@@ -24,9 +24,7 @@ function resolveRefreshToken(req: Request, payload: Partial<RefreshTokenInput & 
 
 function sessionResponse(session: Awaited<ReturnType<typeof loginUser>>) {
   return {
-    user: session.user,
-    accessToken: session.accessToken,
-    refreshToken: session.refreshToken
+    user: session.user
   };
 }
 
